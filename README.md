@@ -1,6 +1,8 @@
+[![CircleCI](https://circleci.com/gh/kalys/bamboo_ses.svg?style=svg)](https://circleci.com/gh/kalys/bamboo_ses)
+
 # BambooSes
 
-**TODO: Add description**
+AWS SES adapter for Bamboo
 
 ## Installation
 
