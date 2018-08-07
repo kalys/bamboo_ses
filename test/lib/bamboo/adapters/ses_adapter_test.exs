@@ -1,61 +1,83 @@
 defmodule Bamboo.SesAdapterTest do
   use ExUnit.Case
   import Mox
+  alias Bamboo.{ApiError, Email, Mailer, SesAdapter}
+  alias ExAws.Request.HttpMock
+  alias Mail.Parsers.RFC2822
+  require IEx
 
   defp new_email do
-      Bamboo.Email.new_email(
-        to: "kalys@osmonov.com",
-        from: "kalys@osmonov.com",
-        subject: "Welcome to the app.",
-        html_body: "<strong>Thanks for joining!</strong>",
-        text_body: "Thanks for joining!"
-      ) |> Bamboo.Mailer.normalize_addresses()
+    Email.new_email(
+      to: "alice@example.com",
+      from: "bob@example.com",
+      cc: "john@example.com",
+      bcc: "jane@example.com",
+      subject: "Welcome to the app.",
+      html_body: "<strong>Thanks for joining!</strong>",
+      text_body: "Thanks for joining!"
+    ) |> Mailer.normalize_addresses()
+  end
+
+  defp parse_body(body) do
+    body
+    |> URI.decode_query
+    |> Map.get("RawMessage.Data")
+    |> Base.decode64!
+    |> RFC2822.parse
   end
 
   setup do
+    System.put_env("AWS_ACCESS_KEY_ID", "AKIAIOSFODNN7EXAMPLE")
+    System.put_env("AWS_SECRET_ACCESS_KEY", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
     Application.put_env(:ex_aws, :http_client, ExAws.Request.HttpMock)
-    Application.put_env(:logger, Bamboo.SesAdapterTest.SesAdapterTestApp.Mailer, adapter: Bamboo.SesAdapter)
     :ok
   end
 
-  test "delivers successfully", context do
-    ExAws.Request.HttpMock
-    |> expect(:request, fn _method, _url, _body, _headers, _opts -> {:ok, %{status_code: 200}} end)
+  test "delivers successfully" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      message = parse_body(body)
+      assert Mail.get_from(message) == "bob@example.com"
+      assert Mail.get_to(message) == ["alice@example.com"]
+      assert Mail.get_cc(message) == "john@example.com"
+      assert Mail.get_subject(message) == "Welcome to the app."
+      assert Mail.get_text(message).body == "Thanks for joining!"
+      assert Mail.get_html(message).body == "<strong>Thanks for joining!</strong>"
+      assert Mail.get_bcc(message) == "jane@example.com"
+      {:ok, %{status_code: 200}}
+    end
 
-    assert new_email() |> Bamboo.SesAdapter.deliver(%{}) == %{status_code: 200}
+    HttpMock
+    |> expect(:request, expected_request_fn)
+
+    new_email() |> SesAdapter.deliver(%{})
+  end
+
+  test "delivers attachments" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      message = parse_body(body)
+      filenames = message
+                  |> Mail.get_attachments
+                  |> Enum.map(&elem(&1, 0))
+                  |> Enum.sort
+      assert filenames == ["invoice.pdf", "song.mp3"]
+      {:ok, %{status_code: 200}}
+    end
+
+    HttpMock
+    |> expect(:request, expected_request_fn)
+
+    new_email()
+      |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
+      |> Email.put_attachment(Path.join(__DIR__, "../../../support/song.mp3"))
+      |> SesAdapter.deliver(%{})
   end
 
   test "raises error" do
-    ExAws.Request.HttpMock
-    |> expect(:request, fn _method, _url, _body, _headers, _opts -> {:ok, %{status_code: 404}} end)
+    HttpMock
+    |> expect(:request, fn _, _, _, _, _ -> {:ok, %{status_code: 404}} end)
 
-    assert_raise(Bamboo.ApiError, fn ->
-      new_email() |> Bamboo.SesAdapter.deliver(%{})
+    assert_raise(ApiError, fn ->
+      new_email() |> SesAdapter.deliver(%{})
     end)
   end
 end
-
-# %ExAws.Operation.Query{
-#   action: :send_email,
-#   params: %{
-#     "Action" => "SendEmail",
-#     "Destination.ToAddresses.member.1" => "kalys@osmonov.com",
-#     "Message.Body.Html.Data" => "<strong>Thanks for joining!</strong>",
-#     "Message.Subject.Data" => "Welcome to the app.",
-#     "Source" => "kalys@osmonov.com"
-#   },
-#   parser: &ExAws.SES.Parsers.parse/2,
-#   path: "/",
-#   service: :ses
-# }
-# {:ok,
-#  %{
-#    body: "<SendEmailResponse xmlns=\"http://ses.amazonaws.com/doc/2010-12-01/\">\n  <SendEmailResult>\n    <MessageId>010001646b5ed074-46fb7a7d-6d66-47db-98cc-699ed707d428-000000</MessageId>\n  </SendEmailResult>\n  <ResponseMetadata>\n    <RequestId>3b2ee238-8074-11e8-992f-29544718dc89</RequestId>\n  </ResponseMetadata>\n</SendEmailResponse>\n",
-#    headers: [
-#      {"x-amzn-RequestId", "3b2ee238-8074-11e8-992f-29544718dc89"},
-#      {"Content-Type", "text/xml"},
-#      {"Content-Length", "326"},
-#      {"Date", "Thu, 05 Jul 2018 16:55:32 GMT"}
-#    ],
-#    status_code: 200
-#  }

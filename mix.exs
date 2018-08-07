@@ -23,6 +23,7 @@ defmodule BambooSes.MixProject do
     [
       {:ex_aws_ses, "~> 2.0.1"},
       {:bamboo, "~> 1.0"},
+      {:mail, "~> 0.2.0"},
       {:mox, "~> 0.3", only: :test},
       {:credo, "~> 0.9.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.14", only: :dev},
