@@ -4,10 +4,14 @@ defmodule BambooSes.MixProject do
   def project do
     [
       app: :bamboo_ses,
-      version: "0.1.0",
       elixir: "~> 1.6",
+      description: description(),
+      deps: deps(),
+      docs: docs(),
+      package: package(),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      source_url: "https://github.com/kalys/bamboo_ses",
+      version: "0.1.0"
     ]
   end
 
@@ -28,6 +32,22 @@ defmodule BambooSes.MixProject do
       {:credo, "~> 0.9.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.14", only: :dev},
       {:inch_ex, ">= 0.0.0", only: :dev},
+    ]
+  end
+
+  defp description do
+    "AWS SES adapter for Bamboo"
+  end
+
+  defp docs do
+    [main: "readme", extras: ["README.md"]]
+  end
+
+  defp package do
+    [
+      maintainers: ["Kalys Osmonov <kalys@osmonov.com>"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/kalys/bamboo_ses"},
     ]
   end
 end

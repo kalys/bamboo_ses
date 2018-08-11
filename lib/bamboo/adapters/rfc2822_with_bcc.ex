@@ -1,17 +1,17 @@
 defmodule Bamboo.SesAdapter.RFC2822WithBcc do
-  import Mail.Message, only: [match_content_type?: 2]
-  alias Mail.Encoder
-  alias Mail.Message
-
-  @days ~w(Mon Tue Wed Thu Fri Sat Sun)
-  @months ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
-
   @moduledoc """
   RFC2822 Parser
 
   Will attempt to render a valid RFC2822 message
   from a `%Message{}` data model.
   """
+
+  import Mail.Message, only: [match_content_type?: 2]
+  alias Mail.Encoder
+  alias Mail.Message
+
+  @days ~w(Mon Tue Wed Thu Fri Sat Sun)
+  @months ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
 
   @address_types ["From", "To", "Reply-To", "Cc", "Bcc"]
 
@@ -122,8 +122,6 @@ defmodule Bamboo.SesAdapter.RFC2822WithBcc do
 
   @doc """
   Will render all headers according to the RFC2882 spec
-
-  Can take an optional list of headers to blacklist
   """
   def render_headers(headers)
   def render_headers(map) when is_map(map),
