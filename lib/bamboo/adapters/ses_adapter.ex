@@ -24,6 +24,7 @@ defmodule Bamboo.SesAdapter do
     message =
       Mail.build_multipart()
       |> Mail.put_from(prepare_address(email.from))
+      |> Mail.put_reply_to(email.headers["Reply-To"])
       |> Mail.put_to(prepare_addresses(email.to))
       |> Mail.put_cc(prepare_addresses(email.cc))
       |> Mail.put_bcc(prepare_addresses(email.bcc))
