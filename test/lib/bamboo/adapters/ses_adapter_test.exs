@@ -13,6 +13,7 @@ defmodule Bamboo.SesAdapterTest do
       cc: "john@example.com",
       bcc: "jane@example.com",
       subject: "Welcome to the app.",
+      headers: %{"Reply-To" => "chuck@example.com"},
       html_body: "<strong>Thanks for joining!</strong>",
       text_body: "Thanks for joining!"
     ) |> Mailer.normalize_addresses()
@@ -38,6 +39,7 @@ defmodule Bamboo.SesAdapterTest do
       message = parse_body(body)
       assert Mail.get_from(message) == "bob@example.com"
       assert Mail.get_to(message) == ["alice@example.com"]
+      assert Mail.get_reply_to(message) == "chuck@example.com"
       assert Mail.get_cc(message) == "john@example.com"
       assert Mail.get_subject(message) == "Welcome to the app."
       assert Mail.get_text(message).body == "Thanks for joining!"
