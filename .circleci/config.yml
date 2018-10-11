@@ -3,7 +3,7 @@ jobs:
   build:
     parallelism: 1
     docker:
-      - image: circleci/elixir:1.6
+      - image: circleci/elixir:1.7
         environment:
           MIX_ENV: test
           AWS_ACCESS_KEY_ID: AKIAIOSFODNN7EXAMPLE
