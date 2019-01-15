@@ -16,7 +16,8 @@ defmodule Bamboo.SesAdapter.RFC2822WithBcc do
   @address_types ["From", "To", "Reply-To", "Cc", "Bcc"]
 
   # https://tools.ietf.org/html/rfc2822#section-3.4.1
-  @email_validation_regex ~r/\w+@\w+\.\w+/
+  # taken from https://github.com/DockYard/elixir-mail/blob/bc27eba27ea0895a2fc12f5ac00de3e944a7fd8f/lib/mail/renderers/rfc_2822.ex#L25
+  @email_validation_regex ~r/[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,64}/
 
   @doc """
   Renders a message according to the RFC2882 spec

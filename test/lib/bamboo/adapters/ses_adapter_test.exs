@@ -6,9 +6,9 @@ defmodule Bamboo.SesAdapterTest do
   alias Mail.Parsers.RFC2822
   require IEx
 
-  defp new_email do
+  defp new_email(to \\ "alice@example.com") do
     Email.new_email(
-      to: "alice@example.com",
+      to: to,
       from: "bob@example.com",
       cc: "john@example.com",
       bcc: "jane@example.com",
@@ -52,6 +52,20 @@ defmodule Bamboo.SesAdapterTest do
     |> expect(:request, expected_request_fn)
 
     new_email() |> SesAdapter.deliver(%{})
+  end
+
+  test "delivers mails with dashes in top level domain successfully" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      message = parse_body(body)
+      assert Mail.get_to(message) == ["jim@my-example-host.com"]
+
+      {:ok, %{status_code: 200}}
+    end
+
+    HttpMock
+    |> expect(:request, expected_request_fn)
+
+    new_email("jim@my-example-host.com") |> SesAdapter.deliver(%{})
   end
 
   test "delivers attachments" do
