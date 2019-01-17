@@ -11,7 +11,7 @@ defmodule BambooSes.MixProject do
       package: package(),
       start_permanent: Mix.env() == :prod,
       source_url: "https://github.com/kalys/bamboo_ses",
-      version: "0.1.2"
+      version: "0.1.3"
     ]
   end
 
