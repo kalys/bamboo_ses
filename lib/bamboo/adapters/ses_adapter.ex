@@ -20,7 +20,7 @@ defmodule Bamboo.SesAdapter do
     config
   end
 
-  def deliver(email, _config) do
+  def deliver(email, config) do
     message =
       Mail.build_multipart()
       |> Mail.put_from(prepare_address(email.from))
@@ -41,7 +41,9 @@ defmodule Bamboo.SesAdapter do
 
     email = SES.send_raw_email(raw_message)
 
-    case email |> ExAws.request() do
+    ex_aws_config = Map.get(config, :ex_aws, [])
+
+    case email |> ExAws.request(ex_aws_config) do
       {:ok, response} -> response
       {:error, reason} -> raise_api_error(inspect(reason))
     end

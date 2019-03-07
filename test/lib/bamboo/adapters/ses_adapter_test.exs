@@ -92,6 +92,24 @@ defmodule Bamboo.SesAdapterTest do
     |> SesAdapter.deliver(%{})
   end
 
+  test "uses default aws region" do
+    expected_request_fn = fn _, "https://email.us-east-1.amazonaws.com/", _, _, _ ->
+      {:ok, %{status_code: 200}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    new_email() |> SesAdapter.deliver(%{})
+  end
+
+  test "uses configured aws region" do
+    expect(HttpMock, :request, fn _, "https://email.eu-west-1.amazonaws.com/", _, _, _ ->
+      {:ok, %{status_code: 200}}
+    end)
+
+    new_email() |> SesAdapter.deliver(%{ex_aws: [region: "eu-west-1"]})
+  end
+
   test "raises error" do
     HttpMock
     |> expect(:request, fn _, _, _, _, _ -> {:ok, %{status_code: 404}} end)
