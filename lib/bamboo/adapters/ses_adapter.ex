@@ -31,13 +31,17 @@ defmodule Bamboo.SesAdapter do
       |> Mail.put_subject(email.subject)
       |> Mail.put_text(email.text_body)
       |> Mail.put_html(email.html_body)
-    message = email.attachments
-              |> Enum.map(&prepare_file(&1))
-              |> Enum.reduce(message, &Mail.put_attachment(&2, &1))
+
+    message =
+      email.attachments
+      |> Enum.map(&prepare_file(&1))
+      |> Enum.reduce(message, &Mail.put_attachment(&2, &1))
+
     raw_message = Mail.render(message, RFC2822WithBcc)
 
     email = SES.send_raw_email(raw_message)
-    case email |> ExAws.request do
+
+    case email |> ExAws.request() do
       {:ok, response} -> response
       {:error, reason} -> raise_api_error(inspect(reason))
     end
