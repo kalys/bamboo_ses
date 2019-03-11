@@ -20,7 +20,7 @@ defmodule Bamboo.SesAdapter do
     config
   end
 
-  def deliver(email, _config) do
+  def deliver(email, config) do
     message =
       Mail.build_multipart()
       |> Mail.put_from(prepare_address(email.from))
@@ -31,13 +31,19 @@ defmodule Bamboo.SesAdapter do
       |> Mail.put_subject(email.subject)
       |> put_text(email.text_body)
       |> put_html(email.html_body)
-    message = email.attachments
-              |> Enum.map(&prepare_file(&1))
-              |> Enum.reduce(message, &Mail.put_attachment(&2, &1))
+
+    message =
+      email.attachments
+      |> Enum.map(&prepare_file(&1))
+      |> Enum.reduce(message, &Mail.put_attachment(&2, &1))
+
     raw_message = Mail.render(message, RFC2822WithBcc)
 
     email = SES.send_raw_email(raw_message)
-    case email |> ExAws.request do
+
+    ex_aws_config = Map.get(config, :ex_aws, [])
+
+    case email |> ExAws.request(ex_aws_config) do
       {:ok, response} -> response
       {:error, reason} -> raise_api_error(inspect(reason))
     end

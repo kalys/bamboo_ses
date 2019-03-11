@@ -31,7 +31,7 @@ defmodule BambooSes.MixProject do
       {:mox, "~> 0.3", only: :test},
       {:credo, "~> 0.9.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.14", only: :dev},
-      {:inch_ex, ">= 0.0.0", only: :dev},
+      {:inch_ex, ">= 0.0.0", only: :dev}
     ]
   end
 
@@ -47,7 +47,7 @@ defmodule BambooSes.MixProject do
     [
       maintainers: ["Kalys Osmonov <kalys@osmonov.com>"],
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/kalys/bamboo_ses"},
+      links: %{"GitHub" => "https://github.com/kalys/bamboo_ses"}
     ]
   end
 end
