@@ -16,15 +16,16 @@ defmodule Bamboo.SesAdapterTest do
       headers: %{"Reply-To" => "chuck@example.com"},
       html_body: "<strong>Thanks for joining!</strong>",
       text_body: "Thanks for joining!"
-    ) |> Mailer.normalize_addresses()
+    )
+    |> Mailer.normalize_addresses()
   end
 
   defp parse_body(body) do
     body
-    |> URI.decode_query
+    |> URI.decode_query()
     |> Map.get("RawMessage.Data")
-    |> Base.decode64!
-    |> RFC2822.parse
+    |> Base.decode64!()
+    |> RFC2822.parse()
   end
 
   setup do
@@ -71,10 +72,13 @@ defmodule Bamboo.SesAdapterTest do
   test "delivers attachments" do
     expected_request_fn = fn _, _, body, _, _ ->
       message = parse_body(body)
-      filenames = message
-                  |> Mail.get_attachments
-                  |> Enum.map(&elem(&1, 0))
-                  |> Enum.sort
+
+      filenames =
+        message
+        |> Mail.get_attachments()
+        |> Enum.map(&elem(&1, 0))
+        |> Enum.sort()
+
       assert filenames == ["invoice.pdf", "song.mp3"]
       {:ok, %{status_code: 200}}
     end
@@ -83,9 +87,27 @@ defmodule Bamboo.SesAdapterTest do
     |> expect(:request, expected_request_fn)
 
     new_email()
-      |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
-      |> Email.put_attachment(Path.join(__DIR__, "../../../support/song.mp3"))
-      |> SesAdapter.deliver(%{})
+    |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
+    |> Email.put_attachment(Path.join(__DIR__, "../../../support/song.mp3"))
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "uses default aws region" do
+    expected_request_fn = fn _, "https://email.us-east-1.amazonaws.com/", _, _, _ ->
+      {:ok, %{status_code: 200}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    new_email() |> SesAdapter.deliver(%{})
+  end
+
+  test "uses configured aws region" do
+    expect(HttpMock, :request, fn _, "https://email.eu-west-1.amazonaws.com/", _, _, _ ->
+      {:ok, %{status_code: 200}}
+    end)
+
+    new_email() |> SesAdapter.deliver(%{ex_aws: [region: "eu-west-1"]})
   end
 
   test "raises error" do

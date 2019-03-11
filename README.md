@@ -6,8 +6,7 @@ AWS SES adapter for Bamboo
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `bamboo_ses` to your list of dependencies in `mix.exs`:
+The package can be installed by adding `bamboo_ses` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -21,13 +20,22 @@ end
 
 Change the config for your mailer:
 
-    config :my_app, MyApp.Mailer,
-      adapter: Bamboo.SesAdapter
+```elixir
+config :my_app, MyApp.Mailer,
+  adapter: Bamboo.SesAdapter
+```
 
-To find more on AWS key configuration please follow [this link](https://github.com/ex-aws/ex_aws#aws-key-configuration)
+This package has [ExAws](https://github.com/ex-aws/ex_aws) as a dependency, and you have to configure it. To find more
+on AWS key configuration, please follow [this link](https://github.com/ex-aws/ex_aws#aws-key-configuration).
+
+You can also override the default ExAws configuration defining a Keyword list as `ex_aws` key in the mailer config:
+
+```elixir
+config :my_app, MyApp.Mailer,
+  adapter: Bamboo.SesAdapter,
+  ex_aws: [region: "eu-west-1"]
+```
 
 ## Documentation
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/bamboo_ses](https://hexdocs.pm/bamboo_ses).
+Documentation can be found at [https://hexdocs.pm/bamboo_ses](https://hexdocs.pm/bamboo_ses).
