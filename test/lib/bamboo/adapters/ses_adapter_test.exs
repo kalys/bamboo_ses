@@ -54,6 +54,23 @@ defmodule Bamboo.SesAdapterTest do
     new_email() |> SesAdapter.deliver(%{})
   end
 
+  test "delivers successfully email withtout body" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      message = parse_body(body)
+      assert Mail.get_text(message) == nil
+      assert Mail.get_html(message) == nil
+      assert Mail.get_from(message) == "bob@example.com"
+      assert Mail.get_to(message) == ["alice@example.com"]
+      {:ok, %{status_code: 200}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    Email.new_email(from: "bob@example.com", to: "alice@example.com")
+    |> Mailer.normalize_addresses()
+    |> SesAdapter.deliver(%{})
+  end
+
   test "delivers mails with dashes in top level domain successfully" do
     expected_request_fn = fn _, _, body, _, _ ->
       message = parse_body(body)
