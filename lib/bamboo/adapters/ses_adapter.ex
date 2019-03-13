@@ -7,7 +7,6 @@ defmodule Bamboo.SesAdapter do
 
   @behaviour Bamboo.Adapter
 
-  alias Bamboo.Attachment
   alias Bamboo.SesAdapter.RFC2822WithBcc
   alias ExAws.SES
   import Bamboo.ApiError
@@ -21,36 +20,30 @@ defmodule Bamboo.SesAdapter do
   end
 
   def deliver(email, config) do
-    message =
-      Mail.build_multipart()
-      |> Mail.put_from(prepare_address(email.from))
-      |> Mail.put_reply_to(email.headers["Reply-To"])
-      |> Mail.put_to(prepare_addresses(email.to))
-      |> Mail.put_cc(prepare_addresses(email.cc))
-      |> Mail.put_bcc(prepare_addresses(email.bcc))
-      |> Mail.put_subject(email.subject)
-      |> put_text(email.text_body)
-      |> put_html(email.html_body)
-
-    message =
-      email.attachments
-      |> Enum.map(&prepare_file(&1))
-      |> Enum.reduce(message, &Mail.put_attachment(&2, &1))
-
-    raw_message = Mail.render(message, RFC2822WithBcc)
-
-    email = SES.send_raw_email(raw_message)
-
     ex_aws_config = Map.get(config, :ex_aws, [])
 
-    case email |> ExAws.request(ex_aws_config) do
+    case Mail.build_multipart()
+         |> Mail.put_from(prepare_address(email.from))
+         |> Mail.put_reply_to(email.headers["Reply-To"])
+         |> Mail.put_to(prepare_addresses(email.to))
+         |> Mail.put_cc(prepare_addresses(email.cc))
+         |> Mail.put_bcc(prepare_addresses(email.bcc))
+         |> Mail.put_subject(email.subject)
+         |> put_text(email.text_body)
+         |> put_html(email.html_body)
+         |> put_attachments(email.attachments)
+         |> Mail.render(RFC2822WithBcc)
+         |> SES.send_raw_email()
+         |> ExAws.request(ex_aws_config) do
       {:ok, response} -> response
       {:error, reason} -> raise_api_error(inspect(reason))
     end
   end
 
-  defp prepare_file(%Attachment{} = attachment) do
-    {attachment.filename, attachment.data}
+  def put_attachments(message, []), do: message
+
+  def put_attachments(message, attachments) do
+    Enum.reduce(attachments, message, &Mail.put_attachment(&2, {&1.filename, &1.data}))
   end
 
   def put_text(message, nil), do: message
