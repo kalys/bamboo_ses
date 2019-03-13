@@ -55,7 +55,7 @@ defmodule Bamboo.SesAdapterTest do
     new_email() |> SesAdapter.deliver(%{})
   end
 
-  test "delivers successfully email withtout body" do
+  test "delivers successfully email without body" do
     expected_request_fn = fn _, _, body, _, _ ->
       message = parse_body(body)
       assert Mail.get_text(message) == nil
