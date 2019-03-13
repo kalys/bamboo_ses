@@ -29,8 +29,8 @@ defmodule Bamboo.SesAdapter do
       |> Mail.put_cc(prepare_addresses(email.cc))
       |> Mail.put_bcc(prepare_addresses(email.bcc))
       |> Mail.put_subject(email.subject)
-      |> Mail.put_text(email.text_body)
-      |> Mail.put_html(email.html_body)
+      |> put_text(email.text_body)
+      |> put_html(email.html_body)
 
     message =
       email.attachments
@@ -52,6 +52,14 @@ defmodule Bamboo.SesAdapter do
   defp prepare_file(%Attachment{} = attachment) do
     {attachment.filename, attachment.data}
   end
+
+  def put_text(message, nil), do: message
+
+  def put_text(message, body), do: Mail.put_text(message, body)
+
+  def put_html(message, nil), do: message
+
+  def put_html(message, body), do: Mail.put_html(message, body)
 
   defp prepare_addresses(recipients) do
     recipients
