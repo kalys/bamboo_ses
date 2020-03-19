@@ -29,6 +29,7 @@ defmodule Bamboo.SesAdapter do
          |> Mail.put_cc(prepare_addresses(email.cc))
          |> Mail.put_bcc(prepare_addresses(email.bcc))
          |> Mail.put_subject(email.subject)
+         |> put_headers(email.headers)
          |> put_text(email.text_body)
          |> put_html(email.html_body)
          |> put_attachments(email.attachments)
@@ -37,6 +38,19 @@ defmodule Bamboo.SesAdapter do
          |> ExAws.request(ex_aws_config) do
       {:ok, response} -> response
       {:error, reason} -> raise_api_error(inspect(reason))
+    end
+  end
+
+  def put_headers(email, headers) when is_map(headers), do: put_headers(Enum.into(headers, []))
+  def put_headers(email, headers) when is_list(headers) do
+    email = case Enum.at(headers, 0) do
+      nil -> email
+      {key, value} ->
+        header_list = headers -- [{key, value}]
+        headers = Map.put(email.headers, String.downcase(key), value)
+        email
+        |> Map.put(:headers, headers)
+        |> put_headers(header_list)
     end
   end
 
