@@ -41,7 +41,7 @@ defmodule Bamboo.SesAdapter do
     end
   end
 
-  def put_headers(email, headers) when is_map(headers), do: put_headers(Enum.into(headers, []))
+  def put_headers(email, headers) when is_map(headers), do: put_headers(email, Enum.into(headers, []))
   def put_headers(email, headers) when is_list(headers) do
     email = case Enum.at(headers, 0) do
       nil -> email
