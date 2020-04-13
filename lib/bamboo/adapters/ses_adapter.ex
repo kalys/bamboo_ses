@@ -24,7 +24,6 @@ defmodule Bamboo.SesAdapter do
 
     case Mail.build_multipart()
          |> Mail.put_from(prepare_address(email.from))
-         |> Mail.put_reply_to(email.headers["Reply-To"])
          |> Mail.put_to(prepare_addresses(email.to))
          |> Mail.put_cc(prepare_addresses(email.cc))
          |> Mail.put_bcc(prepare_addresses(email.bcc))
@@ -41,17 +40,14 @@ defmodule Bamboo.SesAdapter do
     end
   end
 
-  def put_headers(email, headers) when is_map(headers), do: put_headers(email, Enum.into(headers, []))
-  def put_headers(email, headers) when is_list(headers) do
-    email = case Enum.at(headers, 0) do
-      nil -> email
-      {key, value} ->
-        header_list = headers -- [{key, value}]
-        headers = Map.put(email.headers, String.downcase(key), value)
-        email
-        |> Map.put(:headers, headers)
-        |> put_headers(header_list)
-    end
+  def put_headers(message, headers) when is_map(headers) do
+    put_headers(message, Map.to_list(headers))
+  end
+  def put_headers(message, []), do: message
+  def put_headers(message, [{key, value} | tail]) do
+    message
+    |> Mail.Message.put_header(key, value)
+    |> put_headers(tail)
   end
 
   def put_attachments(message, []), do: message

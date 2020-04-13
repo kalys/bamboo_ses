@@ -109,6 +109,24 @@ defmodule Bamboo.SesAdapterTest do
     |> SesAdapter.deliver(%{})
   end
 
+  test "puts headers" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      message = parse_body(body)
+
+      assert Mail.Message.get_header(message, :x_custom_header) == "header-value; another-value"
+      assert Mail.Message.get_header(message, :reply_to) == "chuck@example.com"
+
+      {:ok, %{status_code: 200}}
+    end
+
+    HttpMock
+    |> expect(:request, expected_request_fn)
+
+    new_email()
+    |> Email.put_header("X-Custom-Header", "header-value; another-value")
+    |> SesAdapter.deliver(%{})
+  end
+
   test "uses default aws region" do
     expected_request_fn = fn _, "https://email.us-east-1.amazonaws.com/", _, _, _ ->
       {:ok, %{status_code: 200}}
