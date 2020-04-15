@@ -40,9 +40,7 @@ defmodule Bamboo.SesAdapter do
     end
   end
 
-  def put_headers(message, headers) when is_map(headers) do
-    put_headers(message, Map.to_list(headers))
-  end
+  def put_headers(message, headers) when is_map(headers), do: put_headers(message, Map.to_list(headers))
   def put_headers(message, []), do: message
   def put_headers(message, [{key, value} | tail]) do
     message
@@ -65,8 +63,7 @@ defmodule Bamboo.SesAdapter do
   def put_html(message, body), do: Mail.put_html(message, body)
 
   defp prepare_addresses(recipients) do
-    recipients
-    |> Enum.map(&prepare_address(&1))
+    Enum.map(recipients, &prepare_address(&1))
   end
 
   defp prepare_address({nil, address}), do: address
