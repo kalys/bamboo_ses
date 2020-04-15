@@ -40,31 +40,33 @@ defmodule Bamboo.SesAdapter do
     end
   end
 
-  def put_headers(message, headers) when is_map(headers), do: put_headers(message, Map.to_list(headers))
-  def put_headers(message, []), do: message
-  def put_headers(message, [{key, value} | tail]) do
+  defp put_headers(message, headers) when is_map(headers), do: put_headers(message, Map.to_list(headers))
+  defp put_headers(message, []), do: message
+  defp put_headers(message, [{key, value} | tail]) do
     message
     |> Mail.Message.put_header(key, value)
     |> put_headers(tail)
   end
 
-  def put_attachments(message, []), do: message
+  defp put_attachments(message, []), do: message
 
-  def put_attachments(message, attachments) do
-    Enum.reduce(attachments, message, &Mail.put_attachment(&2, {&1.filename, &1.data}))
+  defp put_attachments(message, attachments) do
+    Enum.reduce(
+      attachments,
+      message,
+      &Mail.put_attachment(&2, {&1.filename, &1.data})
+    )
   end
 
-  def put_text(message, nil), do: message
+  defp put_text(message, nil), do: message
 
-  def put_text(message, body), do: Mail.put_text(message, body)
+  defp put_text(message, body), do: Mail.put_text(message, body)
 
-  def put_html(message, nil), do: message
+  defp put_html(message, nil), do: message
 
-  def put_html(message, body), do: Mail.put_html(message, body)
+  defp put_html(message, body), do: Mail.put_html(message, body)
 
-  defp prepare_addresses(recipients) do
-    Enum.map(recipients, &prepare_address(&1))
-  end
+  defp prepare_addresses(recipients), do: Enum.map(recipients, &prepare_address(&1))
 
   defp prepare_address({nil, address}), do: address
   defp prepare_address({"", address}), do: address
