@@ -33,7 +33,7 @@ defmodule Bamboo.SesAdapter do
          |> put_html(email.html_body)
          |> put_attachments(email.attachments)
          |> Mail.render(RFC2822WithBcc)
-         |> SES.send_raw_email()
+         |> SES.send_raw_email(configuration_set_name: email.private[:configuration_set_name])
          |> ExAws.request(ex_aws_config) do
       {:ok, response} -> response
       {:error, reason} -> raise_api_error(inspect(reason))
@@ -65,6 +65,12 @@ defmodule Bamboo.SesAdapter do
   defp put_html(message, nil), do: message
 
   defp put_html(message, body), do: Mail.put_html(message, body)
+
+  @doc """
+  Set the SES configuration set name.
+  """
+  def set_configuration_set(mail, configuration_set_name),
+    do: Bamboo.Email.put_private(mail, :configuration_set_name, configuration_set_name)
 
   defp prepare_addresses(recipients), do: Enum.map(recipients, &prepare_address(&1))
 

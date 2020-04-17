@@ -106,6 +106,26 @@ defmodule Bamboo.SesAdapterTest do
     |> SesAdapter.deliver(%{})
   end
 
+  test "sets the configuration set" do
+    expected_configuration_set_name = "some-configuration-set"
+
+    expected_request_fn = fn _, _, body, _, _ ->
+      configuration_set_name =
+        body
+        |> URI.decode_query()
+        |> Map.get("ConfigurationSetName")
+
+      assert configuration_set_name == expected_configuration_set_name
+      {:ok, %{status_code: 200}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    new_email()
+    |> SesAdapter.set_configuration_set(expected_configuration_set_name)
+    |> SesAdapter.deliver(%{})
+  end
+
   test "puts headers" do
     expected_request_fn = fn _, _, body, _, _ ->
       message = parse_body(body)
