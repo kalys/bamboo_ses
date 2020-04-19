@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/kalys/bamboo_ses.svg?style=svg)](https://circleci.com/gh/kalys/bamboo_ses)
+![Elixir CI](https://github.com/kalys/bamboo_ses/workflows/Elixir%20CI/badge.svg)
 
 # BambooSes
 
