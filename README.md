@@ -36,6 +36,14 @@ config :my_app, MyApp.Mailer,
   ex_aws: [region: "eu-west-1"]
 ```
 
+## Usage
+#### Configuration Sets
+
+```elixir
+email = TestBambooSes.welcome_email()
+email = Bamboo.SesAdapter.set_configuration_set(email, "configuration_set_name")
+TestBambooSes.Mailer.deliver_now(email)
+```
 ## Documentation
 
 Documentation can be found at [https://hexdocs.pm/bamboo_ses](https://hexdocs.pm/bamboo_ses).
