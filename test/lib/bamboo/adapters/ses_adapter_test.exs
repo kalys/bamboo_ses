@@ -49,10 +49,9 @@ defmodule Bamboo.SesAdapterTest do
       {:ok, %{status_code: 200}}
     end
 
-    HttpMock
-    |> expect(:request, expected_request_fn)
+    expect(HttpMock, :request, expected_request_fn)
 
-    new_email() |> SesAdapter.deliver(%{})
+    SesAdapter.deliver(new_email(), %{})
   end
 
   test "delivers successfully email without body" do
@@ -80,10 +79,9 @@ defmodule Bamboo.SesAdapterTest do
       {:ok, %{status_code: 200}}
     end
 
-    HttpMock
-    |> expect(:request, expected_request_fn)
+    expect(HttpMock, :request, expected_request_fn)
 
-    new_email("jim@my-example-host.com") |> SesAdapter.deliver(%{})
+    SesAdapter.deliver(new_email("jim@my-example-host.com"), %{})
   end
 
   test "delivers attachments" do
@@ -100,8 +98,7 @@ defmodule Bamboo.SesAdapterTest do
       {:ok, %{status_code: 200}}
     end
 
-    HttpMock
-    |> expect(:request, expected_request_fn)
+    expect(HttpMock, :request, expected_request_fn)
 
     new_email()
     |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
@@ -119,15 +116,30 @@ defmodule Bamboo.SesAdapterTest do
         |> Map.get("ConfigurationSetName")
 
       assert configuration_set_name == expected_configuration_set_name
+      {:ok, %{status_code: 200}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    new_email()
+    |> SesAdapter.set_configuration_set(expected_configuration_set_name)
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "puts headers" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      message = parse_body(body)
+
+      assert Mail.Message.get_header(message, :x_custom_header) == "header-value; another-value"
+      assert Mail.Message.get_header(message, :reply_to) == "chuck@example.com"
 
       {:ok, %{status_code: 200}}
     end
 
-    HttpMock
-    |> expect(:request, expected_request_fn)
+    expect(HttpMock, :request, expected_request_fn)
 
     new_email()
-    |> SesAdapter.set_configuration_set(expected_configuration_set_name)
+    |> Email.put_header("X-Custom-Header", "header-value; another-value")
     |> SesAdapter.deliver(%{})
   end
 
@@ -138,7 +150,7 @@ defmodule Bamboo.SesAdapterTest do
 
     expect(HttpMock, :request, expected_request_fn)
 
-    new_email() |> SesAdapter.deliver(%{})
+    SesAdapter.deliver(new_email(), %{})
   end
 
   test "uses configured aws region" do
@@ -146,15 +158,14 @@ defmodule Bamboo.SesAdapterTest do
       {:ok, %{status_code: 200}}
     end)
 
-    new_email() |> SesAdapter.deliver(%{ex_aws: [region: "eu-west-1"]})
+    SesAdapter.deliver(new_email(), %{ex_aws: [region: "eu-west-1"]})
   end
 
   test "raises error" do
-    HttpMock
-    |> expect(:request, fn _, _, _, _, _ -> {:ok, %{status_code: 404}} end)
+    expect(HttpMock, :request, fn _, _, _, _, _ -> {:ok, %{status_code: 404}} end)
 
     assert_raise(ApiError, fn ->
-      new_email() |> SesAdapter.deliver(%{})
+      SesAdapter.deliver(new_email(), %{})
     end)
   end
 end

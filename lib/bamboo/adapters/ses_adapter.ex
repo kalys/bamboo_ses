@@ -24,11 +24,11 @@ defmodule Bamboo.SesAdapter do
 
     case Mail.build_multipart()
          |> Mail.put_from(prepare_address(email.from))
-         |> Mail.put_reply_to(email.headers["Reply-To"])
          |> Mail.put_to(prepare_addresses(email.to))
          |> Mail.put_cc(prepare_addresses(email.cc))
          |> Mail.put_bcc(prepare_addresses(email.bcc))
          |> Mail.put_subject(email.subject)
+         |> put_headers(email.headers)
          |> put_text(email.text_body)
          |> put_html(email.html_body)
          |> put_attachments(email.attachments)
@@ -40,19 +40,31 @@ defmodule Bamboo.SesAdapter do
     end
   end
 
-  def put_attachments(message, []), do: message
-
-  def put_attachments(message, attachments) do
-    Enum.reduce(attachments, message, &Mail.put_attachment(&2, {&1.filename, &1.data}))
+  defp put_headers(message, headers) when is_map(headers), do: put_headers(message, Map.to_list(headers))
+  defp put_headers(message, []), do: message
+  defp put_headers(message, [{key, value} | tail]) do
+    message
+    |> Mail.Message.put_header(key, value)
+    |> put_headers(tail)
   end
 
-  def put_text(message, nil), do: message
+  defp put_attachments(message, []), do: message
 
-  def put_text(message, body), do: Mail.put_text(message, body)
+  defp put_attachments(message, attachments) do
+    Enum.reduce(
+      attachments,
+      message,
+      &Mail.put_attachment(&2, {&1.filename, &1.data})
+    )
+  end
 
-  def put_html(message, nil), do: message
+  defp put_text(message, nil), do: message
 
-  def put_html(message, body), do: Mail.put_html(message, body)
+  defp put_text(message, body), do: Mail.put_text(message, body)
+
+  defp put_html(message, nil), do: message
+
+  defp put_html(message, body), do: Mail.put_html(message, body)
 
   @doc """
   Set the SES configuration set name.
@@ -60,10 +72,7 @@ defmodule Bamboo.SesAdapter do
   def set_configuration_set(mail, configuration_set_name),
     do: Bamboo.Email.put_private(mail, :configuration_set_name, configuration_set_name)
 
-  defp prepare_addresses(recipients) do
-    recipients
-    |> Enum.map(&prepare_address(&1))
-  end
+  defp prepare_addresses(recipients), do: Enum.map(recipients, &prepare_address(&1))
 
   defp prepare_address({nil, address}), do: address
   defp prepare_address({"", address}), do: address
