@@ -23,3 +23,5 @@ erl_crash.dump
 bamboo_ses-*.tar
 
 .env
+
+.elixir_ls

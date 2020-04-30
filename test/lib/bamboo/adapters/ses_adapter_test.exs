@@ -106,6 +106,15 @@ defmodule Bamboo.SesAdapterTest do
     |> SesAdapter.deliver(%{})
   end
 
+  test "set custom headers on attachments" do
+    email = new_email()
+    |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"), content_id: "invoice")
+
+    assert %Bamboo.Email{attachments: [
+      %Bamboo.Attachment{content_id: "invoice"}
+    ]} = email
+  end
+
   test "sets the configuration set" do
     expected_configuration_set_name = "some-configuration-set"
 

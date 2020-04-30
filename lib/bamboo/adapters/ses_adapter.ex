@@ -54,7 +54,7 @@ defmodule Bamboo.SesAdapter do
     Enum.reduce(
       attachments,
       message,
-      &Mail.put_attachment(&2, {&1.filename, &1.data})
+      &Mail.put_attachment(&2, {&1.filename, &1.data}, headers: [content_id: &1.content_id])
     )
   end
 
