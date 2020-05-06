@@ -126,6 +126,51 @@ defmodule Bamboo.SesAdapterTest do
     |> SesAdapter.deliver(%{})
   end
 
+  test "sets the template" do
+    expected_template = "some-template-set"
+
+    expected_request_fn = fn _, _, body, _, _ ->
+      template =
+        body
+        |> URI.decode_query()
+        |> Map.get("Template")
+
+      assert template == expected_template
+      {:ok, %{status_code: 200}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    new_email()
+    |> SesAdapter.set_template(expected_template)
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "sets the template data" do
+    set_template = %{
+      name: "John",
+      cat: true
+    }
+
+    expected_template = "{\"cat\":true,\"name\":\"John\"}"
+
+    expected_request_fn = fn _, _, body, _, _ ->
+      template =
+        body
+        |> URI.decode_query()
+        |> Map.get("TemplateData")
+
+      assert template == expected_template
+      {:ok, %{status_code: 200}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    new_email()
+    |> SesAdapter.set_template_data(set_template)
+    |> SesAdapter.deliver(%{})
+  end
+
   test "puts headers" do
     expected_request_fn = fn _, _, body, _, _ ->
       message = parse_body(body)

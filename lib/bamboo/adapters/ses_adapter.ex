@@ -21,6 +21,9 @@ defmodule Bamboo.SesAdapter do
 
   def deliver(email, config) do
     ex_aws_config = Map.get(config, :ex_aws, [])
+    template = email.private[:template]
+    configuration_set_name = email.private[:configuration_set_name]
+    template_data = email.private[:template_data]
 
     case Mail.build_multipart()
          |> Mail.put_from(prepare_address(email.from))
@@ -33,7 +36,11 @@ defmodule Bamboo.SesAdapter do
          |> put_html(email.html_body)
          |> put_attachments(email.attachments)
          |> Mail.render(RFC2822WithBcc)
-         |> SES.send_raw_email(configuration_set_name: email.private[:configuration_set_name])
+         |> SES.send_raw_email(
+              configuration_set_name: configuration_set_name,
+              template: template,
+              template_data: template_data
+            )
          |> ExAws.request(ex_aws_config) do
       {:ok, response} -> response
       {:error, reason} -> raise_api_error(inspect(reason))
@@ -71,6 +78,19 @@ defmodule Bamboo.SesAdapter do
   """
   def set_configuration_set(mail, configuration_set_name),
     do: Bamboo.Email.put_private(mail, :configuration_set_name, configuration_set_name)
+
+  @doc """
+  Set the SES template
+  """
+  def set_template(mail, template),
+    do: Bamboo.Email.put_private(mail, :template, template)
+
+  @doc """
+  Set the SES template data
+  """
+  def set_template_data(mail, template_data) when is_map(template_data) do
+    Bamboo.Email.put_private(mail, :template_data, Jason.encode!(template_data))
+  end
 
   defp prepare_addresses(recipients), do: Enum.map(recipients, &prepare_address(&1))
 
