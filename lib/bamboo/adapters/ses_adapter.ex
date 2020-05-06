@@ -21,27 +21,43 @@ defmodule Bamboo.SesAdapter do
 
   def deliver(email, config) do
     ex_aws_config = Map.get(config, :ex_aws, [])
+    template = email.private[:template]
+    configuration_set_name = email.private[:configuration_set_name]
+    template_data = email.private[:template_data]
 
-    case Mail.build_multipart()
-         |> Mail.put_from(prepare_address(email.from))
-         |> Mail.put_to(prepare_addresses(email.to))
-         |> Mail.put_cc(prepare_addresses(email.cc))
-         |> Mail.put_bcc(prepare_addresses(email.bcc))
-         |> Mail.put_subject(email.subject)
-         |> put_headers(email.headers)
-         |> put_text(email.text_body)
-         |> put_html(email.html_body)
-         |> put_attachments(email.attachments)
-         |> Mail.render(RFC2822WithBcc)
-         |> SES.send_raw_email(configuration_set_name: email.private[:configuration_set_name])
+    built =
+      Mail.build_multipart()
+      |> Mail.put_from(prepare_address(email.from))
+      |> Mail.put_to(prepare_addresses(email.to))
+      |> Mail.put_cc(prepare_addresses(email.cc))
+      |> Mail.put_bcc(prepare_addresses(email.bcc))
+      |> Mail.put_subject(email.subject)
+      |> put_headers(email.headers)
+      |> put_text(email.text_body)
+      |> put_html(email.html_body)
+      |> put_attachments(email.attachments)
+      |> Mail.render(RFC2822WithBcc)
+
+    built =
+      built
+      |> SES.send_raw_email(
+        configuration_set_name: configuration_set_name,
+        template: template,
+        template_data: template_data
+      )
+
+    case built
          |> ExAws.request(ex_aws_config) do
       {:ok, response} -> response
       {:error, reason} -> raise_api_error(inspect(reason))
     end
   end
 
-  defp put_headers(message, headers) when is_map(headers), do: put_headers(message, Map.to_list(headers))
+  defp put_headers(message, headers) when is_map(headers),
+    do: put_headers(message, Map.to_list(headers))
+
   defp put_headers(message, []), do: message
+
   defp put_headers(message, [{key, value} | tail]) do
     message
     |> Mail.Message.put_header(key, value)
@@ -71,6 +87,19 @@ defmodule Bamboo.SesAdapter do
   """
   def set_configuration_set(mail, configuration_set_name),
     do: Bamboo.Email.put_private(mail, :configuration_set_name, configuration_set_name)
+
+  @doc """
+  Set the SES template
+  """
+  def set_template(mail, template),
+    do: Bamboo.Email.put_private(mail, :template, template)
+
+  @doc """
+  Set the SES template data
+  """
+  def set_template_data(mail, template_data) when is_map(template_data) do
+    Bamboo.Email.put_private(mail, :template_data, Jason.encode!(template_data))
+  end
 
   defp prepare_addresses(recipients), do: Enum.map(recipients, &prepare_address(&1))
 
