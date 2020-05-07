@@ -40,13 +40,17 @@ defmodule Bamboo.SesAdapter do
     end
   end
 
-  defp put_headers(message, headers) when is_map(headers), do: put_headers(message, Map.to_list(headers))
+  defp put_headers(message, headers) when is_map(headers),
+    do: put_headers(message, Map.to_list(headers))
+
   defp put_headers(message, []), do: message
+
   defp put_headers(message, [{"Reply-To" = key, {_name, _address} = value} | tail]) do
     message
     |> Mail.Message.put_header(key, prepare_address(value))
     |> put_headers(tail)
   end
+
   defp put_headers(message, [{key, value} | tail]) do
     message
     |> Mail.Message.put_header(key, value)
@@ -79,9 +83,12 @@ defmodule Bamboo.SesAdapter do
 
   defp prepare_addresses(recipients), do: Enum.map(recipients, &prepare_address(&1))
 
-  defp prepare_address({nil, address}), do: address
-  defp prepare_address({"", address}), do: address
-  defp prepare_address({name, address}), do: "#{maybe_rfc1342_encode(name)} <#{address}>"
+  defp prepare_address({nil, address}), do: maybe_puny_encode(address)
+  defp prepare_address({"", address}), do: maybe_puny_encode(address)
+
+  defp prepare_address({name, address}),
+    do: "#{maybe_rfc1342_encode(name)} <#{maybe_puny_encode(address)}>"
+
   defp prepare_subject(subject), do: maybe_rfc1342_encode(subject)
 
   defp maybe_rfc1342_encode(string) when is_binary(string) do
@@ -91,7 +98,21 @@ defmodule Bamboo.SesAdapter do
       string
     end
   end
+
   defp maybe_rfc1342_encode(string), do: string
+
+  defp maybe_puny_encode(address) do
+    if use_punycode?() do
+      puny_encode(address)
+    else
+      address
+    end
+  end
+
+  defp puny_encode(address) do
+    [local_part, domain_part] = String.split(address, "@")
+    Enum.join([local_part, :idna.utf8_to_ascii(domain_part)], "@")
+  end
 
   defp rfc1342_encode(string, {:utf8, :base64}) do
     string
@@ -104,4 +125,5 @@ defmodule Bamboo.SesAdapter do
   end
 
   defp use_rfc1342?, do: Application.get_env(:bamboo_ses, :rfc1342, false)
+  defp use_punycode?, do: Application.get_env(:bamboo_ses, :punycode, false)
 end
