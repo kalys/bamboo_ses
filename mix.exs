@@ -30,7 +30,7 @@ defmodule BambooSes.MixProject do
       {:mail, "~> 0.2.0"},
       {:jason, "~> 1.1", override: true},
       {:mox, "~> 0.3", only: :test},
-      {:credo, "~> 0.9.1", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.14", only: :dev}
     ]
   end
