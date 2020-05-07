@@ -37,18 +37,21 @@ defmodule Bamboo.SesAdapter do
          |> put_attachments(email.attachments)
          |> Mail.render(RFC2822WithBcc)
          |> SES.send_raw_email(
-              configuration_set_name: configuration_set_name,
-              template: template,
-              template_data: template_data
-            )
+           configuration_set_name: configuration_set_name,
+           template: template,
+           template_data: template_data
+         )
          |> ExAws.request(ex_aws_config) do
       {:ok, response} -> response
       {:error, reason} -> raise_api_error(inspect(reason))
     end
   end
 
-  defp put_headers(message, headers) when is_map(headers), do: put_headers(message, Map.to_list(headers))
+  defp put_headers(message, headers) when is_map(headers),
+    do: put_headers(message, Map.to_list(headers))
+
   defp put_headers(message, []), do: message
+
   defp put_headers(message, [{key, value} | tail]) do
     message
     |> Mail.Message.put_header(key, value)
