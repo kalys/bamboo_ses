@@ -27,7 +27,7 @@ defmodule Bamboo.SesAdapter do
          |> Mail.put_to(prepare_addresses(email.to))
          |> Mail.put_cc(prepare_addresses(email.cc))
          |> Mail.put_bcc(prepare_addresses(email.bcc))
-         |> Mail.put_subject(email.subject)
+         |> Mail.put_subject(prepare_subject(email.subject))
          |> put_headers(email.headers)
          |> put_text(email.text_body)
          |> put_html(email.html_body)
@@ -42,6 +42,11 @@ defmodule Bamboo.SesAdapter do
 
   defp put_headers(message, headers) when is_map(headers), do: put_headers(message, Map.to_list(headers))
   defp put_headers(message, []), do: message
+  defp put_headers(message, [{"Reply-To" = key, {_name, _address} = value} | tail]) do
+    message
+    |> Mail.Message.put_header(key, prepare_address(value))
+    |> put_headers(tail)
+  end
   defp put_headers(message, [{key, value} | tail]) do
     message
     |> Mail.Message.put_header(key, value)
@@ -76,5 +81,27 @@ defmodule Bamboo.SesAdapter do
 
   defp prepare_address({nil, address}), do: address
   defp prepare_address({"", address}), do: address
-  defp prepare_address({name, address}), do: "#{name} <#{address}>"
+  defp prepare_address({name, address}), do: "#{maybe_rfc1342_encode(name)} <#{address}>"
+  defp prepare_subject(subject), do: maybe_rfc1342_encode(subject)
+
+  defp maybe_rfc1342_encode(string) when is_binary(string) do
+    if use_rfc1342?() do
+      rfc1342_encode(string, {:utf8, :base64})
+    else
+      string
+    end
+  end
+  defp maybe_rfc1342_encode(string), do: string
+
+  defp rfc1342_encode(string, {:utf8, :base64}) do
+    string
+    |> Stream.unfold(&String.split_at(&1, 37))
+    |> Enum.take_while(&(&1 != ""))
+    |> Enum.map(fn word ->
+      "=?utf-8?B?#{Base.encode64(word)}?="
+    end)
+    |> Enum.join(" ")
+  end
+
+  defp use_rfc1342?, do: Application.get_env(:bamboo_ses, :rfc1342, false)
 end
