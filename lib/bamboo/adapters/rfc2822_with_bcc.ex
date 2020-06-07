@@ -1,18 +1,20 @@
-defmodule Bamboo.SesAdapter.RFC2822WithBcc do
-  @moduledoc """
-  RFC2822 Parser
-
-  Will attempt to render a valid RFC2822 message
-  from a `%Message{}` data model.
-  """
-
+defmodule Bamboo.SesAdapter.RFC2822Renderer do
   import Mail.Message, only: [match_content_type?: 2]
-  alias Mail.Encoder
-  alias Mail.Message
 
   @days ~w(Mon Tue Wed Thu Fri Sat Sun)
   @months ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
 
+  @moduledoc """
+  RFC2822 Parser
+  Will attempt to render a valid RFC2822 message
+  from a `%Mail.Message{}` data model.
+      Mail.Renderers.RFC2822.render(message)
+  The email validation regex defaults to `~r/\w+@\w+\.\w+/`
+  and can be overridden with the following config:
+      config :mail, email_regex: custom_regex
+  """
+
+  @blacklisted_headers []
   @address_types ["From", "To", "Reply-To", "Cc", "Bcc"]
 
   # https://tools.ietf.org/html/rfc2822#section-3.4.1
@@ -23,53 +25,58 @@ defmodule Bamboo.SesAdapter.RFC2822WithBcc do
                           )
 
   @doc """
-  Renders a message according to the RFC2882 spec
+  Renders a message according to the RFC2822 spec
   """
-  def render(%Message{multipart: true} = message) do
+  def render(%Mail.Message{multipart: true} = message) do
     message
     |> reorganize
-    |> Message.put_header(:mime_version, "1.0")
+    |> Mail.Message.put_header(:mime_version, "1.0")
     |> render_part()
   end
 
-  def render(%Message{} = message),
+  def render(%Mail.Message{} = message),
     do: render_part(message)
 
   @doc """
   Render an individual part
-
   An optional function can be passed used during the rendering of each
   individual part
   """
   def render_part(message, render_part_function \\ &render_part/1)
 
-  def render_part(%Message{multipart: true} = message, fun) do
-    boundary = Message.get_boundary(message)
-    message = Message.put_boundary(message, boundary)
+  def render_part(%Mail.Message{multipart: true} = message, fun) do
+    boundary = Mail.Message.get_boundary(message)
+    message = Mail.Message.put_boundary(message, boundary)
 
-    headers = render_headers(message.headers)
+    headers = render_headers(message.headers, @blacklisted_headers)
     boundary = "--#{boundary}"
 
     parts =
-      message.parts
-      |> render_parts(fun)
+      render_parts(message.parts, fun)
       |> Enum.join("\r\n\r\n#{boundary}\r\n")
 
     "#{headers}\r\n\r\n#{boundary}\r\n#{parts}\r\n#{boundary}--"
   end
 
-  def render_part(%Message{} = message, _fun) do
+  def render_part(%Mail.Message{} = message, _fun) do
     encoded_body = encode(message.body, message)
-    "#{render_headers(message.headers)}\r\n\r\n#{encoded_body}"
+    "#{render_headers(message.headers, @blacklisted_headers)}\r\n\r\n#{encoded_body}"
   end
 
   def render_parts(parts, fun \\ &render_part/1) when is_list(parts),
     do: Enum.map(parts, &fun.(&1))
 
+  defp render_header({key, value}), do: render_header(key, value)
+
   @doc """
-  Will render a given header according to the RFC2882 spec
+  Will render a given header according to the RFC2822 spec
   """
   def render_header(key, value)
+
+  def render_header(_key, nil), do: nil
+  def render_header(_key, []), do: nil
+  def render_header(_key, ""), do: nil
+  def render_header(key, <<" ", rest::binary>>), do: render_header(key, rest)
 
   def render_header(key, value) when is_atom(key),
     do: render_header(Atom.to_string(key), value)
@@ -90,7 +97,9 @@ defmodule Bamboo.SesAdapter.RFC2822WithBcc do
 
   defp render_header_value(address_type, addresses)
        when is_list(addresses) and address_type in @address_types,
-       do: addresses |> Enum.map(&render_address(&1)) |> Enum.join(", ")
+       do:
+         Enum.map(addresses, &render_address(&1))
+         |> Enum.join(", ")
 
   defp render_header_value(address_type, address) when address_type in @address_types,
     do: render_address(address)
@@ -123,7 +132,10 @@ defmodule Bamboo.SesAdapter.RFC2822WithBcc do
     end
   end
 
-  defp render_address({name, email}), do: ~s("#{name}" <#{validate_address(email)}>)
+  defp render_address({name, email}) do
+    ~s("#{name}" <#{validate_address(email)}>)
+  end
+
   defp render_address(email), do: validate_address(email)
   defp render_subtypes([]), do: []
 
@@ -140,25 +152,29 @@ defmodule Bamboo.SesAdapter.RFC2822WithBcc do
   end
 
   @doc """
-  Will render all headers according to the RFC2882 spec
+  Will render all headers according to the RFC2822 spec
+  Can take an optional list of headers to blacklist
   """
-  def render_headers(headers)
+  def render_headers(headers, blacklist \\ [])
 
-  def render_headers(map) when is_map(map),
-    do: map |> Map.to_list() |> render_headers()
+  def render_headers(map, blacklist) when is_map(map) do
+    map
+    |> Map.to_list()
+    |> render_headers(blacklist)
+  end
 
-  def render_headers(list) when is_list(list) do
+  def render_headers(list, blacklist) when is_list(list) do
     list
-    |> do_render_headers()
+    |> Enum.reject(&Enum.member?(blacklist, elem(&1, 0)))
+    |> Enum.map(&render_header/1)
+    |> Enum.filter(& &1)
     |> Enum.reverse()
     |> Enum.join("\r\n")
   end
 
   @doc """
   Builds a RFC2822 timestamp from an Erlang timestamp
-
   [RFC2822 3.3 - Date and Time Specification](https://tools.ietf.org/html/rfc2822#section-3.3)
-
   This function always assumes the Erlang timestamp is in Universal time, not Local time
   """
   def timestamp_from_erl({{year, month, day} = date, {hour, minute, second}}) do
@@ -177,58 +193,36 @@ defmodule Bamboo.SesAdapter.RFC2822WithBcc do
       |> Integer.to_string()
       |> String.pad_leading(2, "0")
 
-  defp do_render_headers([]), do: []
-  defp do_render_headers([{_key, nil} | headers]), do: do_render_headers(headers)
-  defp do_render_headers([{_key, []} | headers]), do: do_render_headers(headers)
+  defp reorganize(%Mail.Message{multipart: true} = message) do
+    content_type = Mail.Message.get_content_type(message)
 
-  defp do_render_headers([{key, value} | headers]) when is_binary(value) do
-    if String.trim(value) == "" do
-      do_render_headers(headers)
-    else
-      [render_header(key, value) | do_render_headers(headers)]
-    end
-  end
-
-  defp do_render_headers([{key, value} | headers]) do
-    [render_header(key, value) | do_render_headers(headers)]
-  end
-
-  defp reorganize(%Message{multipart: true} = message) do
-    content_type = Message.get_content_type(message)
-
-    if Message.has_attachment?(message) do
+    if Mail.Message.has_attachment?(message) do
       text_parts =
-        message.parts
-        |> Enum.filter(&match_content_type?(&1, ~r/text\/(plain|html)/))
+        Enum.filter(message.parts, &match_content_type?(&1, ~r/text\/(plain|html)/))
         |> Enum.sort(&(&1 > &2))
 
       content_type = List.replace_at(content_type, 0, "multipart/mixed")
-      message = Message.put_content_type(message, content_type)
+      message = Mail.Message.put_content_type(message, content_type)
 
       if Enum.any?(text_parts) do
-        message =
-          text_parts
-          |> Enum.reduce(message, &Message.delete_part(&2, &1))
+        message = Enum.reduce(text_parts, message, &Mail.Message.delete_part(&2, &1))
 
         mixed_part =
           Mail.build_multipart()
-          |> Message.put_content_type("multipart/alternative")
+          |> Mail.Message.put_content_type("multipart/alternative")
 
-        mixed_part =
-          text_parts
-          |> Enum.reduce(mixed_part, &Message.put_part(&2, &1))
-
+        mixed_part = Enum.reduce(text_parts, mixed_part, &Mail.Message.put_part(&2, &1))
         put_in(message.parts, List.insert_at(message.parts, 0, mixed_part))
+      else
+        message
       end
     else
       content_type = List.replace_at(content_type, 0, "multipart/alternative")
-      Message.put_content_type(message, content_type)
+      Mail.Message.put_content_type(message, content_type)
     end
   end
 
-  defp reorganize(%Message{} = message), do: message
-
   defp encode(body, message) do
-    Encoder.encode(body, Message.get_header(message, "content-transfer-encoding"))
+    Mail.Encoder.encode(body, Mail.Message.get_header(message, "content-transfer-encoding"))
   end
 end

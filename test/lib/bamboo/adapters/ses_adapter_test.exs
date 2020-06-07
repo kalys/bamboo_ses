@@ -32,8 +32,6 @@ defmodule Bamboo.SesAdapterTest do
     System.put_env("AWS_ACCESS_KEY_ID", "AKIAIOSFODNN7EXAMPLE")
     System.put_env("AWS_SECRET_ACCESS_KEY", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
     Application.put_env(:ex_aws, :http_client, ExAws.Request.HttpMock)
-    Application.put_env(:bamboo_ses, :rfc1342, false)
-    Application.put_env(:bamboo_ses, :punycode, false)
     :ok
   end
 
@@ -216,9 +214,7 @@ defmodule Bamboo.SesAdapterTest do
     end)
   end
 
-  test "rfc1342" do
-    Application.put_env(:bamboo_ses, :rfc1342, true)
-
+  test "friendly name encoding" do
     email =
       Email.new_email(
         to: {"Alice Johnson", "alice@example.com"},
@@ -232,14 +228,14 @@ defmodule Bamboo.SesAdapterTest do
 
     expected_request_fn = fn _, _, body, _, _ ->
       message = parse_body(body)
-      assert Mail.get_to(message) == [{"=?utf-8?B?QWxpY2UgSm9obnNvbg==?=", "alice@example.com"}]
-      assert Mail.get_from(message) == {"=?utf-8?B?Qm9iIE1jQm9i?=", "bob@example.com"}
-      assert Mail.get_cc(message) == "=?utf-8?B?Sm9obiBNw7xsbGVy?= <john@example.com>"
-      assert Mail.get_bcc(message) == "=?utf-8?B?SmFuZSBEb2U=?= <jane@example.com>"
-      assert Mail.get_reply_to(message) == {"=?utf-8?B?Q2h1Y2sgRWFnZXI=?=", "chuck@example.com"}
+      assert Mail.get_to(message) == [{"=?utf-8?Q?Alice Johnson?=", "alice@example.com"}]
+      assert Mail.get_from(message) == {"=?utf-8?Q?Bob McBob?=", "bob@example.com"}
+      assert Mail.get_cc(message) == "\"=?utf-8?Q?John M=C3=BCller?=\" <john@example.com>"
+      assert Mail.get_bcc(message) == "\"=?utf-8?Q?Jane Doe?=\" <jane@example.com>"
+      assert Mail.get_reply_to(message) == {"=?utf-8?Q?Chuck Eager?=", "chuck@example.com"}
 
       assert Mail.get_subject(message) ==
-               "=?utf-8?B?V2VsY29tZSB0byB0aGUgYXBwIHRoaXMgaXMgYSBsb25nZXIgcw==?= =?utf-8?B?dWJqZWN0?="
+               "Welcome to the app this is a longer subject"
 
       {:ok, %{status_code: 200}}
     end
@@ -247,15 +243,12 @@ defmodule Bamboo.SesAdapterTest do
     expect(HttpMock, :request, expected_request_fn)
 
     SesAdapter.deliver(email, %{})
-    Application.put_env(:bamboo_ses, :rfc1342, false)
   end
 
   test "punycode" do
-    Application.put_env(:bamboo_ses, :punycode, true)
-
     email =
       Email.new_email(
-        to: {"Alice Johnson", "alice@möhren.de"},
+        to: "alice@möhren.de",
         cc: "bob@rüben.de",
         from: "someone@example.com"
       )
@@ -263,7 +256,7 @@ defmodule Bamboo.SesAdapterTest do
 
     expected_request_fn = fn _, _, body, _, _ ->
       message = parse_body(body)
-      assert Mail.get_to(message) == [{"Alice Johnson", "alice@xn--mhren-jua.de"}]
+      assert Mail.get_to(message) == ["alice@xn--mhren-jua.de"]
       assert Mail.get_cc(message) == "bob@xn--rben-0ra.de"
 
       {:ok, %{status_code: 200}}

@@ -7,7 +7,7 @@ defmodule Bamboo.SesAdapter do
 
   @behaviour Bamboo.Adapter
 
-  alias Bamboo.SesAdapter.RFC2822WithBcc
+  alias Bamboo.SesAdapter.RFC2822Renderer
   alias ExAws.SES
   import Bamboo.ApiError
 
@@ -30,12 +30,12 @@ defmodule Bamboo.SesAdapter do
          |> Mail.put_to(prepare_addresses(email.to))
          |> Mail.put_cc(prepare_addresses(email.cc))
          |> Mail.put_bcc(prepare_addresses(email.bcc))
-         |> Mail.put_subject(prepare_subject(email.subject))
+         |> Mail.put_subject(q_encode(email.subject))
          |> put_headers(email.headers)
          |> put_text(email.text_body)
          |> put_html(email.html_body)
          |> put_attachments(email.attachments)
-         |> Mail.render(RFC2822WithBcc)
+         |> Mail.render(RFC2822Renderer)
          |> SES.send_raw_email(
            configuration_set_name: configuration_set_name,
            template: template,
@@ -47,7 +47,8 @@ defmodule Bamboo.SesAdapter do
     end
   end
 
-  defp put_headers(message, headers) when is_map(headers), do: put_headers(message, Map.to_list(headers))
+  defp put_headers(message, headers) when is_map(headers),
+    do: put_headers(message, Map.to_list(headers))
 
   defp put_headers(message, []), do: message
 
@@ -102,47 +103,17 @@ defmodule Bamboo.SesAdapter do
 
   defp prepare_addresses(recipients), do: Enum.map(recipients, &prepare_address(&1))
 
-  defp prepare_address({nil, address}), do: maybe_puny_encode(address)
-  defp prepare_address({"", address}), do: maybe_puny_encode(address)
+  defp prepare_address({nil, address}), do: encode_address(address)
+  defp prepare_address({"", address}), do: encode_address(address)
 
   defp prepare_address({name, address}),
-    do: "#{maybe_rfc1342_encode(name)} <#{maybe_puny_encode(address)}>"
+    do: {q_encode(name), encode_address(address)}
 
-  defp prepare_subject(subject), do: maybe_rfc1342_encode(subject)
+  defp q_encode(string),
+    do: "=?utf-8?Q?#{Mail.Encoders.QuotedPrintable.encode(string)}?="
 
-  defp maybe_rfc1342_encode(string) when is_binary(string) do
-    if use_rfc1342?() do
-      rfc1342_encode(string, {:utf8, :base64})
-    else
-      string
-    end
-  end
-
-  defp maybe_rfc1342_encode(string), do: string
-
-  defp maybe_puny_encode(address) do
-    if use_punycode?() do
-      puny_encode(address)
-    else
-      address
-    end
-  end
-
-  defp puny_encode(address) do
+  defp encode_address(address) do
     [local_part, domain_part] = String.split(address, "@")
-    Enum.join([local_part, :idna.utf8_to_ascii(domain_part)], "@")
+    Enum.join([Mail.Encoders.SevenBit.encode(local_part), :idna.utf8_to_ascii(domain_part)], "@")
   end
-
-  defp rfc1342_encode(string, {:utf8, :base64}) do
-    string
-    |> Stream.unfold(&String.split_at(&1, 37))
-    |> Enum.take_while(&(&1 != ""))
-    |> Enum.map(fn word ->
-      "=?utf-8?B?#{Base.encode64(word)}?="
-    end)
-    |> Enum.join(" ")
-  end
-
-  defp use_rfc1342?, do: Application.get_env(:bamboo_ses, :rfc1342, false)
-  defp use_punycode?, do: Application.get_env(:bamboo_ses, :punycode, false)
 end
