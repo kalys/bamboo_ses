@@ -42,7 +42,7 @@ defmodule Bamboo.SesAdapterTest do
       assert Mail.get_to(message) == ["alice@example.com"]
       assert Mail.get_reply_to(message) == "chuck@example.com"
       assert Mail.get_cc(message) == "john@example.com"
-      assert Mail.get_subject(message) == "Welcome to the app."
+      assert Mail.get_subject(message) == "=?utf-8?Q?Welcome to the app.?="
       assert Mail.get_text(message).body == "Thanks for joining!"
       assert Mail.get_html(message).body == "<strong>Thanks for joining!</strong>"
       assert Mail.get_bcc(message) == "jane@example.com"
@@ -235,7 +235,7 @@ defmodule Bamboo.SesAdapterTest do
       assert Mail.get_reply_to(message) == {"=?utf-8?Q?Chuck Eager?=", "chuck@example.com"}
 
       assert Mail.get_subject(message) ==
-               "Welcome to the app this is a longer subject"
+               "=?utf-8?Q?Welcome to the app this is a longer subject?="
 
       {:ok, %{status_code: 200}}
     end
