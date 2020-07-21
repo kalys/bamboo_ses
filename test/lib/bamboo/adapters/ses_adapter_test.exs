@@ -110,12 +110,10 @@ defmodule Bamboo.SesAdapterTest do
     expected_configuration_set_name = "some-configuration-set"
 
     expected_request_fn = fn _, _, body, _, _ ->
-      configuration_set_name =
-        body
-        |> URI.decode_query()
-        |> Map.get("ConfigurationSetName")
-
-      assert configuration_set_name == expected_configuration_set_name
+      query = URI.decode_query(body)
+      assert query["ConfigurationSetName"] == expected_configuration_set_name
+      refute Map.has_key?(query, "Template")
+      refute Map.has_key?(query, "TemplateData")
       {:ok, %{status_code: 200}}
     end
 
