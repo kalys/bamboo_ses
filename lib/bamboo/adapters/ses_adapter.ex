@@ -109,8 +109,11 @@ defmodule Bamboo.SesAdapter do
   defp prepare_address({name, address}),
     do: {q_encode(name), encode_address(address)}
 
-  defp q_encode(string) when is_binary(string),
-    do: "=?utf-8?Q?#{Mail.Encoders.QuotedPrintable.encode(string)}?="
+  defp q_encode(string) when is_binary(string) do
+    q_encoded = String.replace(Mail.Encoders.QuotedPrintable.encode(string), "=\r\n", "")
+
+    "=?utf-8?Q?#{q_encoded}?="
+  end
 
   defp q_encode(string), do: string
 
