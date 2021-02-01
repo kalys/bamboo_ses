@@ -117,8 +117,10 @@ defmodule Bamboo.SesAdapter do
   defp prepare_address({nil, address}), do: encode_address(address)
   defp prepare_address({"", address}), do: encode_address(address)
 
-  defp prepare_address({name, address}),
-    do: {b_encode(name), encode_address(address)}
+  defp prepare_address({name, address}) do
+    name = name |> String.replace("\"", "\\\"") |> b_encode()
+    {name, encode_address(address)}
+  end
 
   defp b_encode(string) when is_binary(string) do
     if ascii_only(string) do
