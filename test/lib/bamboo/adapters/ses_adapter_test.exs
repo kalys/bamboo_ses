@@ -266,6 +266,27 @@ defmodule Bamboo.SesAdapterTest do
     SesAdapter.deliver(email, %{})
   end
 
+  test "quotes in addresses" do
+    email =
+      Email.new_email(
+        to: {"Alice \" Johnson", "alice@example.com"},
+        from: {"Bob \"Müller\"", "bob@example.com"}
+      )
+      |> Mailer.normalize_addresses()
+
+    expected_request_fn = fn _, _, body, _, _ ->
+      message = parse_body(body)
+      assert Mail.get_to(message) == [{"=?utf-8?Q?Alice \\\" Johnson?=", "alice@example.com"}]
+      assert Mail.get_from(message) == {"=?utf-8?Q?Bob \\\"M=C3=BCller\\\"?=", "bob@example.com"}
+
+      {:ok, %{status_code: 200}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    SesAdapter.deliver(email, %{})
+  end
+
   test "punycode" do
     email =
       Email.new_email(
