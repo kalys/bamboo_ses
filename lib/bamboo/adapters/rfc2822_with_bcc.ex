@@ -18,7 +18,7 @@ defmodule Bamboo.SesAdapter.RFC2822Renderer do
   @address_types ["From", "To", "Reply-To", "Cc", "Bcc"]
 
   # https://tools.ietf.org/html/rfc2822#section-3.4.1
-  @email_validation_regex Application.get_env(
+  @email_validation_regex Application.compile_env(
                             :mail,
                             :email_regex,
                             ~r/[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,64}/
