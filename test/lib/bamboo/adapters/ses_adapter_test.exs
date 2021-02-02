@@ -42,7 +42,7 @@ defmodule Bamboo.SesAdapterTest do
       assert Mail.get_to(message) == ["alice@example.com"]
       assert Mail.get_reply_to(message) == "chuck@example.com"
       assert Mail.get_cc(message) == "john@example.com"
-      assert Mail.get_subject(message) == "=?utf-8?Q?Welcome to the app.?="
+      assert Mail.get_subject(message) == "Welcome to the app."
       assert Mail.get_text(message).body == "Thanks for joining!"
       assert Mail.get_html(message).body == "<strong>Thanks for joining!</strong>"
       assert Mail.get_bcc(message) == "jane@example.com"
@@ -59,7 +59,9 @@ defmodule Bamboo.SesAdapterTest do
       message = parse_body(body)
 
       assert Mail.get_subject(message) ==
-               "=?utf-8?Q?This is a long subject with an emoji =F0=9F=99=82 bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla?="
+               "=?utf-8?B?#{Base.encode64("This is a long subject with an emoji 🙂 bla")}?= =?utf-8?B?#{
+                 Base.encode64(" bla bla bla bla bla bla bla bla bla bla bla ")
+               }?= =?utf-8?B?#{Base.encode64("bla bla bla bla")}?="
 
       {:ok, %{status_code: 200}}
     end
@@ -240,44 +242,29 @@ defmodule Bamboo.SesAdapterTest do
       Email.new_email(
         to: {"Alice Johnson", "alice@example.com"},
         from: {"Bob McBob", "bob@example.com"},
-        headers: %{"Reply-To" => {"Chuck Eager", "chuck@example.com"}},
+        headers: %{"Reply-To" => {"Chuck (?) Eager", "chuck@example.com"}},
         cc: {"John Müller", "john@example.com"},
-        bcc: {"Jane Doe", "jane@example.com"},
+        bcc: {"Jane \"The Builder\" Doe", "jane@example.com"},
         subject: "Welcome to the app this is a longer subject"
       )
       |> Mailer.normalize_addresses()
 
     expected_request_fn = fn _, _, body, _, _ ->
       message = parse_body(body)
-      assert Mail.get_to(message) == [{"=?utf-8?Q?Alice Johnson?=", "alice@example.com"}]
-      assert Mail.get_from(message) == {"=?utf-8?Q?Bob McBob?=", "bob@example.com"}
-      assert Mail.get_cc(message) == "\"=?utf-8?Q?John M=C3=BCller?=\" <john@example.com>"
-      assert Mail.get_bcc(message) == "\"=?utf-8?Q?Jane Doe?=\" <jane@example.com>"
-      assert Mail.get_reply_to(message) == {"=?utf-8?Q?Chuck Eager?=", "chuck@example.com"}
+      assert Mail.get_to(message) == [{"Alice Johnson", "alice@example.com"}]
+      assert Mail.get_from(message) == {"Bob McBob", "bob@example.com"}
+
+      assert Mail.get_cc(message) ==
+               "\"=?utf-8?B?#{Base.encode64("John Müller")}?=\" <john@example.com>"
+
+      assert Mail.get_bcc(message) ==
+               "\"=?utf-8?B?#{Base.encode64("Jane \"The Builder\" Doe")}?=\" <jane@example.com>"
+
+      assert Mail.get_reply_to(message) ==
+               {"=?utf-8?B?#{Base.encode64("Chuck (?) Eager")}?=", "chuck@example.com"}
 
       assert Mail.get_subject(message) ==
-               "=?utf-8?Q?Welcome to the app this is a longer subject?="
-
-      {:ok, %{status_code: 200}}
-    end
-
-    expect(HttpMock, :request, expected_request_fn)
-
-    SesAdapter.deliver(email, %{})
-  end
-
-  test "quotes in addresses" do
-    email =
-      Email.new_email(
-        to: {"Alice \" Johnson", "alice@example.com"},
-        from: {"Bob \"Müller\"", "bob@example.com"}
-      )
-      |> Mailer.normalize_addresses()
-
-    expected_request_fn = fn _, _, body, _, _ ->
-      message = parse_body(body)
-      assert Mail.get_to(message) == [{"=?utf-8?Q?Alice \\\" Johnson?=", "alice@example.com"}]
-      assert Mail.get_from(message) == {"=?utf-8?Q?Bob \\\"M=C3=BCller\\\"?=", "bob@example.com"}
+               "Welcome to the app this is a longer subject"
 
       {:ok, %{status_code: 200}}
     end
