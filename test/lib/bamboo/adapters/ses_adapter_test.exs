@@ -52,7 +52,9 @@ defmodule Bamboo.SesAdapterTest do
       subject_header = Enum.find(email.headers, &(&1.key == "subject"))
 
       assert subject_header.value ==
-               "=?utf-8?B?VGhpcyBpcyBhIGxvbmcgc3ViamVjdCB3aXRoIGFuIGVtb2ppIPCfmYIgYmxhIGJsYSBibGEgYmxhIGJsYSBibGEgYmxhIGJsYSBibGEgYmxhIGJsYSBibGEgYmxhIGJsYSBibGEgYmxh?="
+               "=?utf-8?B?#{Base.encode64("This is a long subject with an emoji 🙂 bla")}?= =?utf-8?B?#{
+                 Base.encode64(" bla bla bla bla bla bla bla bla bla bla bla ")
+               }?= =?utf-8?B?#{Base.encode64("bla bla bla bla")}?="
 
       {:ok, %{status_code: 200}}
     end
@@ -251,9 +253,9 @@ defmodule Bamboo.SesAdapterTest do
       Email.new_email(
         to: {"Alice Johnson", "alice@example.com"},
         from: {"Bob McBob", "bob@example.com"},
-        headers: %{"Reply-To" => {"Chuck Eager", "chuck@example.com"}},
+        headers: %{"Reply-To" => {"Chuck (?) Eager", "chuck@example.com"}},
         cc: {"John Müller", "john@example.com"},
-        bcc: {"Jane Doe", "jane@example.com"},
+        bcc: {"Jane \"The Builder\" Doe", "jane@example.com"},
         subject: "Welcome to the app this is a longer subject"
       )
       |> Mailer.normalize_addresses()
@@ -262,33 +264,12 @@ defmodule Bamboo.SesAdapterTest do
       email = EmailParser.parse(body)
       assert EmailParser.to(email) == [~s("Alice Johnson" <alice@example.com>)]
       assert EmailParser.from(email) == ~s("Bob McBob" <bob@example.com>)
-      assert EmailParser.cc(email) == [~s("=?utf-8?B?Sm9obiBNw7xsbGVy?=" <john@example.com>)]
-      assert EmailParser.bcc(email) == [~s("Jane Doe" <jane@example.com>)]
-      assert EmailParser.reply_to(email) == ~s("Chuck Eager" <chuck@example.com>)
+      assert EmailParser.cc(email) == [~s("=?utf-8?B?#{Base.encode64("John Müller")}?=" <john@example.com>)]
+      assert EmailParser.bcc(email) == [~s("=?utf-8?B?#{Base.encode64("Jane \"The Builder\" Doe")}?=" <jane@example.com>)]
+      assert EmailParser.reply_to(email) == ~s("=?utf-8?B?#{Base.encode64("Chuck (?) Eager")}?=" <chuck@example.com>)
 
       assert EmailParser.subject(email) ==
                "Welcome to the app this is a longer subject"
-
-      {:ok, %{status_code: 200}}
-    end
-
-    expect(HttpMock, :request, expected_request_fn)
-
-    SesAdapter.deliver(email, %{})
-  end
-
-  test "quotes in addresses" do
-    email =
-      Email.new_email(
-        to: {"Alice \" Johnson", "alice@example.com"},
-        from: {"Bob \"Müller\"", "bob@example.com"}
-      )
-      |> Mailer.normalize_addresses()
-
-    expected_request_fn = fn _, _, body, _, _ ->
-      email = EmailParser.parse(body)
-      assert EmailParser.to(email) == ["\"Alice \\\" Johnson\" <alice@example.com>"]
-      assert EmailParser.from(email) == "\"=?utf-8?B?Qm9iIFwiTcO8bGxlclwi?=\" <bob@example.com>"
 
       {:ok, %{status_code: 200}}
     end
