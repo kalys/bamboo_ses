@@ -1,14 +1,14 @@
 defmodule Bamboo.SesAdapter do
   @moduledoc """
-  Sends email using AWS SES API.
+  Sends email using AWS SES API v2.
 
-  Use this adapter to send emails through AWS SES API.
+  Use this adapter to send emails through AWS SES API v2.
   """
 
   @behaviour Bamboo.Adapter
 
   alias Bamboo.SesAdapter.RFC2822Renderer
-  alias ExAws.SES
+  alias Bamboo.SesAdapter.SESv2
   import Bamboo.ApiError
 
   @doc false
@@ -36,11 +36,12 @@ defmodule Bamboo.SesAdapter do
          |> put_html(email.html_body)
          |> put_attachments(email.attachments)
          |> Mail.render(RFC2822Renderer)
-         |> SES.send_raw_email(
-           configuration_set_name: configuration_set_name,
-           template: template,
-           template_data: template_data
-         )
+         |> SESv2.send_raw_email()
+         # |> SES.send_raw_email(
+         #   configuration_set_name: configuration_set_name,
+         #   template: template,
+         #   template_data: template_data
+         # )
          |> ExAws.request(ex_aws_config) do
       {:ok, response} -> {:ok, response}
       {:error, reason} -> {:error, build_api_error(inspect(reason))}
