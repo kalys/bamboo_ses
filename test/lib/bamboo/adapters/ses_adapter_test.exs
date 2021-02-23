@@ -22,10 +22,15 @@ defmodule Bamboo.SesAdapterTest do
 
   defp parse_body(body) do
     body
+    |> parse_to_binary()
+    |> RFC2822.parse()
+  end
+
+  defp parse_to_binary(body) do
+    body
     |> URI.decode_query()
     |> Map.get("RawMessage.Data")
     |> Base.decode64!()
-    |> RFC2822.parse()
   end
 
   setup do
@@ -124,6 +129,23 @@ defmodule Bamboo.SesAdapterTest do
     new_email()
     |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
     |> Email.put_attachment(Path.join(__DIR__, "../../../support/song.mp3"))
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "passes content_id to attachment headers" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      lines = body |> parse_to_binary() |> String.split("\r\n")
+      assert [content_id_header] = Enum.filter(lines, fn line -> line =~ ~r/^Content-Id:/i end)
+      assert content_id_header == "Content-Id: invoice-pdf-1"
+
+      {:ok, %{status_code: 200}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+    path = Path.join(__DIR__, "../../../support/invoice.pdf")
+
+    new_email()
+    |> Email.put_attachment(path, [content_id: "invoice-pdf-1"])
     |> SesAdapter.deliver(%{})
   end
 
