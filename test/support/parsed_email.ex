@@ -1,4 +1,6 @@
 defmodule BambooSes.ParsedEmail do
+  @moduledoc false
+
   defstruct body_lines: [],
             headers: [],
             parts: [],
