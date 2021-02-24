@@ -122,9 +122,10 @@ defmodule Bamboo.SesAdapterTest do
 
   test "passes content_id to attachment headers" do
     expected_request_fn = fn _, _, body, _, _ ->
-      lines = body |> EmailParser.to_binary() |> String.split("\r\n")
-      assert [content_id_header] = Enum.filter(lines, fn line -> line =~ ~r/^Content-Id:/i end)
-      assert content_id_header == "Content-Id: invoice-pdf-1"
+      email = EmailParser.parse(body)
+      assert [attachment] = email |> EmailParser.attachments() |> Map.values()
+      assert header = Enum.find(attachment.headers, & &1.key == "content-id")
+      assert header.value == "invoice-pdf-1"
 
       {:ok, %{status_code: 200}}
     end
