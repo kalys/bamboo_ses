@@ -49,7 +49,7 @@ defmodule Bamboo.SesAdapterTest do
   test "delivers successfully with long subject" do
     expected_request_fn = fn _, _, body, _, _ ->
       email = EmailParser.parse(body)
-      subject_header = Enum.find(email.headers, & &1.key == "subject")
+      subject_header = Enum.find(email.headers, &(&1.key == "subject"))
 
       assert subject_header.value ==
                "=?utf-8?Q?This is a long subject with an emoji =F0=9F=99=82 bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla?="
@@ -124,7 +124,7 @@ defmodule Bamboo.SesAdapterTest do
     expected_request_fn = fn _, _, body, _, _ ->
       email = EmailParser.parse(body)
       assert [attachment] = email |> EmailParser.attachments() |> Map.values()
-      assert header = Enum.find(attachment.headers, & &1.key == "content-id")
+      assert header = Enum.find(attachment.headers, &(&1.key == "content-id"))
       assert header.value == "invoice-pdf-1"
 
       {:ok, %{status_code: 200}}
@@ -134,7 +134,7 @@ defmodule Bamboo.SesAdapterTest do
     path = Path.join(__DIR__, "../../../support/invoice.pdf")
 
     new_email()
-    |> Email.put_attachment(path, [content_id: "invoice-pdf-1"])
+    |> Email.put_attachment(path, content_id: "invoice-pdf-1")
     |> SesAdapter.deliver(%{})
   end
 

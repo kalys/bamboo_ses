@@ -22,46 +22,46 @@ defmodule BambooSes.EmailParser do
   end
 
   def subject(email) do
-    header = Enum.find(email.headers, & &1.key == "subject")
+    header = Enum.find(email.headers, &(&1.key == "subject"))
     header && header.value
   end
 
   def to(email) do
     email.headers
-    |> Enum.filter(& &1.key == "to")
+    |> Enum.filter(&(&1.key == "to"))
     |> Enum.map(& &1.value)
   end
 
   def cc(email) do
     email.headers
-    |> Enum.filter(& &1.key == "cc")
+    |> Enum.filter(&(&1.key == "cc"))
     |> Enum.map(& &1.value)
   end
 
   def bcc(email) do
     email.headers
-    |> Enum.filter(& &1.key == "bcc")
+    |> Enum.filter(&(&1.key == "bcc"))
     |> Enum.map(& &1.value)
   end
 
   def from(email) do
-    header = Enum.find(email.headers, & &1.key == "from")
+    header = Enum.find(email.headers, &(&1.key == "from"))
     header && header.value
   end
 
   def reply_to(email) do
-    header = Enum.find(email.headers, & &1.key == "reply-to")
+    header = Enum.find(email.headers, &(&1.key == "reply-to"))
     header && header.value
   end
 
   def header(email, name) do
-    Enum.find(email.headers, & &1.key == name)
+    Enum.find(email.headers, &(&1.key == name))
   end
 
   def attachments(email) do
     email.parts
     |> Enum.map(fn part ->
-      header = Enum.find(part.headers, & &1.key == "content-disposition")
+      header = Enum.find(part.headers, &(&1.key == "content-disposition"))
 
       if header do
         filename = header.attrs["filename"]
@@ -86,8 +86,8 @@ defmodule BambooSes.EmailParser do
 
     email.parts
     |> Enum.map(fn part ->
-      ct_header = Enum.find(part.headers, & &1.key == "content-type")
-      cd_header = Enum.find(part.headers, & &1.key == "content-disposition")
+      ct_header = Enum.find(part.headers, &(&1.key == "content-type"))
+      cd_header = Enum.find(part.headers, &(&1.key == "content-disposition"))
 
       if ct_header && ct_header.value == desired_content_type && !cd_header do
         part
@@ -144,7 +144,10 @@ defmodule BambooSes.EmailParser do
     parse_part_lines(email, rest)
   end
 
-  defp parse_part_lines(%{parts: [%{current: :body} = part | parts]} = email, [line | rest] = lines) do
+  defp parse_part_lines(
+         %{parts: [%{current: :body} = part | parts]} = email,
+         [line | rest] = lines
+       ) do
     cond do
       line == "--" <> email.boundary <> "--" ->
         part = %{part | lines: Enum.reverse(part.lines)}
@@ -163,7 +166,7 @@ defmodule BambooSes.EmailParser do
   end
 
   defp parse_headers(email, ["" | rest]) do
-    content_type_header = Enum.find(email.headers, & &1.key == "content-type")
+    content_type_header = Enum.find(email.headers, &(&1.key == "content-type"))
 
     email =
       case content_type_header do
