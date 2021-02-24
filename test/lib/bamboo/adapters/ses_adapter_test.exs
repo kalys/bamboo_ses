@@ -2,8 +2,8 @@ defmodule Bamboo.SesAdapterTest do
   use ExUnit.Case
   import Mox
   alias Bamboo.{ApiError, Email, Mailer, SesAdapter}
+  alias BambooSes.EmailParser
   alias ExAws.Request.HttpMock
-  alias Mail.Parsers.RFC2822
   require IEx
 
   defp new_email(to \\ "alice@example.com", subject \\ "Welcome to the app.") do
@@ -20,14 +20,6 @@ defmodule Bamboo.SesAdapterTest do
     |> Mailer.normalize_addresses()
   end
 
-  defp parse_body(body) do
-    body
-    |> URI.decode_query()
-    |> Map.get("RawMessage.Data")
-    |> Base.decode64!()
-    |> RFC2822.parse()
-  end
-
   setup do
     System.put_env("AWS_ACCESS_KEY_ID", "AKIAIOSFODNN7EXAMPLE")
     System.put_env("AWS_SECRET_ACCESS_KEY", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
@@ -37,15 +29,15 @@ defmodule Bamboo.SesAdapterTest do
 
   test "delivers successfully" do
     expected_request_fn = fn _, _, body, _, _ ->
-      message = parse_body(body)
-      assert Mail.get_from(message) == "bob@example.com"
-      assert Mail.get_to(message) == ["alice@example.com"]
-      assert Mail.get_reply_to(message) == "chuck@example.com"
-      assert Mail.get_cc(message) == "john@example.com"
-      assert Mail.get_subject(message) == "=?utf-8?Q?Welcome to the app.?="
-      assert Mail.get_text(message).body == "Thanks for joining!"
-      assert Mail.get_html(message).body == "<strong>Thanks for joining!</strong>"
-      assert Mail.get_bcc(message) == "jane@example.com"
+      email = EmailParser.parse(body)
+      assert EmailParser.from(email) == "bob@example.com"
+      assert EmailParser.to(email) == ["alice@example.com"]
+      assert EmailParser.reply_to(email) == "chuck@example.com"
+      assert EmailParser.cc(email) == ["john@example.com"]
+      assert EmailParser.subject(email) == "=?utf-8?Q?Welcome to the app.?="
+      assert EmailParser.text(email).lines == ["Thanks for joining!", ""]
+      assert EmailParser.html(email).lines == ["<strong>Thanks for joining!</strong>"]
+      assert EmailParser.bcc(email) == ["jane@example.com"]
       {:ok, %{status_code: 200}}
     end
 
@@ -56,9 +48,10 @@ defmodule Bamboo.SesAdapterTest do
 
   test "delivers successfully with long subject" do
     expected_request_fn = fn _, _, body, _, _ ->
-      message = parse_body(body)
+      email = EmailParser.parse(body)
+      subject_header = Enum.find(email.headers, & &1.key == "subject")
 
-      assert Mail.get_subject(message) ==
+      assert subject_header.value ==
                "=?utf-8?Q?This is a long subject with an emoji =F0=9F=99=82 bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla?="
 
       {:ok, %{status_code: 200}}
@@ -77,11 +70,11 @@ defmodule Bamboo.SesAdapterTest do
 
   test "delivers successfully email without body" do
     expected_request_fn = fn _, _, body, _, _ ->
-      message = parse_body(body)
-      assert Mail.get_text(message) == nil
-      assert Mail.get_html(message) == nil
-      assert Mail.get_from(message) == "bob@example.com"
-      assert Mail.get_to(message) == ["alice@example.com"]
+      email = EmailParser.parse(body)
+      assert EmailParser.text(email) == nil
+      assert EmailParser.html(email) == nil
+      assert EmailParser.from(email) == "bob@example.com"
+      assert EmailParser.to(email) == ["alice@example.com"]
       {:ok, %{status_code: 200}}
     end
 
@@ -94,8 +87,8 @@ defmodule Bamboo.SesAdapterTest do
 
   test "delivers mails with dashes in top level domain successfully" do
     expected_request_fn = fn _, _, body, _, _ ->
-      message = parse_body(body)
-      assert Mail.get_to(message) == ["jim@my-example-host.com"]
+      email = EmailParser.parse(body)
+      assert EmailParser.to(email) == ["jim@my-example-host.com"]
 
       {:ok, %{status_code: 200}}
     end
@@ -107,11 +100,11 @@ defmodule Bamboo.SesAdapterTest do
 
   test "delivers attachments" do
     expected_request_fn = fn _, _, body, _, _ ->
-      message = parse_body(body)
+      email = EmailParser.parse(body)
 
       filenames =
-        message
-        |> Mail.get_attachments()
+        email
+        |> EmailParser.attachments()
         |> Enum.map(&elem(&1, 0))
         |> Enum.sort()
 
@@ -124,6 +117,24 @@ defmodule Bamboo.SesAdapterTest do
     new_email()
     |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
     |> Email.put_attachment(Path.join(__DIR__, "../../../support/song.mp3"))
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "passes content_id to attachment headers" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      email = EmailParser.parse(body)
+      assert [attachment] = email |> EmailParser.attachments() |> Map.values()
+      assert header = Enum.find(attachment.headers, & &1.key == "content-id")
+      assert header.value == "invoice-pdf-1"
+
+      {:ok, %{status_code: 200}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+    path = Path.join(__DIR__, "../../../support/invoice.pdf")
+
+    new_email()
+    |> Email.put_attachment(path, [content_id: "invoice-pdf-1"])
     |> SesAdapter.deliver(%{})
   end
 
@@ -194,10 +205,11 @@ defmodule Bamboo.SesAdapterTest do
 
   test "puts headers" do
     expected_request_fn = fn _, _, body, _, _ ->
-      message = parse_body(body)
+      email = EmailParser.parse(body)
 
-      assert Mail.Message.get_header(message, :x_custom_header) == "header-value; another-value"
-      assert Mail.Message.get_header(message, :reply_to) == "chuck@example.com"
+      assert header = EmailParser.header(email, "x-custom-header")
+      assert header.raw == "X-Custom-Header: header-value; another-value"
+      assert EmailParser.reply_to(email) == "chuck@example.com"
 
       {:ok, %{status_code: 200}}
     end
@@ -248,14 +260,14 @@ defmodule Bamboo.SesAdapterTest do
       |> Mailer.normalize_addresses()
 
     expected_request_fn = fn _, _, body, _, _ ->
-      message = parse_body(body)
-      assert Mail.get_to(message) == [{"=?utf-8?Q?Alice Johnson?=", "alice@example.com"}]
-      assert Mail.get_from(message) == {"=?utf-8?Q?Bob McBob?=", "bob@example.com"}
-      assert Mail.get_cc(message) == "\"=?utf-8?Q?John M=C3=BCller?=\" <john@example.com>"
-      assert Mail.get_bcc(message) == "\"=?utf-8?Q?Jane Doe?=\" <jane@example.com>"
-      assert Mail.get_reply_to(message) == {"=?utf-8?Q?Chuck Eager?=", "chuck@example.com"}
+      email = EmailParser.parse(body)
+      assert EmailParser.to(email) == [~s("=?utf-8?Q?Alice Johnson?=" <alice@example.com>)]
+      assert EmailParser.from(email) == ~s("=?utf-8?Q?Bob McBob?=" <bob@example.com>)
+      assert EmailParser.cc(email) == [~s("=?utf-8?Q?John M=C3=BCller?=" <john@example.com>)]
+      assert EmailParser.bcc(email) == [~s("=?utf-8?Q?Jane Doe?=" <jane@example.com>)]
+      assert EmailParser.reply_to(email) == ~s("=?utf-8?Q?Chuck Eager?=" <chuck@example.com>)
 
-      assert Mail.get_subject(message) ==
+      assert EmailParser.subject(email) ==
                "=?utf-8?Q?Welcome to the app this is a longer subject?="
 
       {:ok, %{status_code: 200}}
@@ -276,9 +288,9 @@ defmodule Bamboo.SesAdapterTest do
       |> Mailer.normalize_addresses()
 
     expected_request_fn = fn _, _, body, _, _ ->
-      message = parse_body(body)
-      assert Mail.get_to(message) == ["alice@xn--mhren-jua.de"]
-      assert Mail.get_cc(message) == "bob@xn--rben-0ra.de"
+      email = EmailParser.parse(body)
+      assert EmailParser.to(email) == ["alice@xn--mhren-jua.de"]
+      assert EmailParser.cc(email) == ["bob@xn--rben-0ra.de"]
 
       {:ok, %{status_code: 200}}
     end
