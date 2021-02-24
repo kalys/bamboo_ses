@@ -11,7 +11,7 @@ defmodule BambooSes.MixProject do
       package: package(),
       start_permanent: Mix.env() == :prod,
       source_url: "https://github.com/kalys/bamboo_ses",
-      version: "0.1.6",
+      version: "0.1.7",
       elixirc_paths: elixirc_paths(Mix.env())
     ]
   end
@@ -30,7 +30,7 @@ defmodule BambooSes.MixProject do
       {:bamboo, "~> 1.0"},
       {:mail, "~> 0.2.0"},
       {:jason, "~> 1.1"},
-      {:mox, "~> 0.3", only: :test},
+      {:mox, "~> 1.0", only: :test},
       {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.14", only: :dev}
     ]
