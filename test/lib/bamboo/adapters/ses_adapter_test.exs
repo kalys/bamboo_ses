@@ -1,7 +1,7 @@
 defmodule Bamboo.SesAdapterTest do
   use ExUnit.Case
   import Mox
-  alias Bamboo.{ApiError, Email, Mailer, SesAdapter}
+  alias Bamboo.{Email, Mailer, SesAdapter}
   alias BambooSes.EmailParser
   alias ExAws.Request.HttpMock
   require IEx
@@ -239,12 +239,11 @@ defmodule Bamboo.SesAdapterTest do
     SesAdapter.deliver(new_email(), %{ex_aws: [region: "eu-west-1"]})
   end
 
-  test "raises error" do
+  test "returns error" do
     expect(HttpMock, :request, fn _, _, _, _, _ -> {:ok, %{status_code: 404}} end)
 
-    assert_raise(ApiError, fn ->
-      SesAdapter.deliver(new_email(), %{})
-    end)
+    {:error, %{message: msg}} = SesAdapter.deliver(new_email(), %{})
+    assert msg == "{:http_error, 404, %{status_code: 404}}"
   end
 
   test "friendly name encoding" do

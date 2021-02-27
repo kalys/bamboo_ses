@@ -42,8 +42,8 @@ defmodule Bamboo.SesAdapter do
            template_data: template_data
          )
          |> ExAws.request(ex_aws_config) do
-      {:ok, response} -> response
-      {:error, reason} -> raise_api_error(inspect(reason))
+      {:ok, response} -> {:ok, response}
+      {:error, reason} -> {:error, build_api_error(inspect(reason))}
     end
   end
 
