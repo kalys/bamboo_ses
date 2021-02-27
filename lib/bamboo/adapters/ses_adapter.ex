@@ -30,7 +30,7 @@ defmodule Bamboo.SesAdapter do
          |> Mail.put_to(prepare_addresses(email.to))
          |> Mail.put_cc(prepare_addresses(email.cc))
          |> Mail.put_bcc(prepare_addresses(email.bcc))
-         |> Mail.put_subject(q_encode(email.subject))
+         |> Mail.put_subject(b_encode(email.subject))
          |> put_headers(email.headers)
          |> put_text(email.text_body)
          |> put_html(email.html_body)
@@ -118,18 +118,25 @@ defmodule Bamboo.SesAdapter do
   defp prepare_address({"", address}), do: encode_address(address)
 
   defp prepare_address({name, address}),
-    do: {q_encode(name), encode_address(address)}
+    do: {b_encode(name), encode_address(address)}
 
-  defp q_encode(string) when is_binary(string) do
-    q_encoded = String.replace(Mail.Encoders.QuotedPrintable.encode(string), "=\r\n", "")
-
-    "=?utf-8?Q?#{q_encoded}?="
+  defp b_encode(string) when is_binary(string) do
+    if ascii_only(string) do
+      string
+    else
+      encoded_string = Base.encode64(string)
+      "=?utf-8?B?#{encoded_string}?="
+    end
   end
 
-  defp q_encode(string), do: string
+  defp b_encode(string), do: string
 
   defp encode_address(address) do
     [local_part, domain_part] = String.split(address, "@")
     Enum.join([Mail.Encoders.SevenBit.encode(local_part), :idna.utf8_to_ascii(domain_part)], "@")
+  end
+
+  defp ascii_only(string) do
+    String.to_charlist(string) |> Enum.all?(fn char -> 0 < char and char <= 127 end)
   end
 end

@@ -34,7 +34,7 @@ defmodule Bamboo.SesAdapterTest do
       assert EmailParser.to(email) == ["alice@example.com"]
       assert EmailParser.reply_to(email) == "chuck@example.com"
       assert EmailParser.cc(email) == ["john@example.com"]
-      assert EmailParser.subject(email) == "=?utf-8?Q?Welcome to the app.?="
+      assert EmailParser.subject(email) == "Welcome to the app."
       assert EmailParser.text(email).lines == ["Thanks for joining!", ""]
       assert EmailParser.html(email).lines == ["<strong>Thanks for joining!</strong>"]
       assert EmailParser.bcc(email) == ["jane@example.com"]
@@ -52,7 +52,7 @@ defmodule Bamboo.SesAdapterTest do
       subject_header = Enum.find(email.headers, &(&1.key == "subject"))
 
       assert subject_header.value ==
-               "=?utf-8?Q?This is a long subject with an emoji =F0=9F=99=82 bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla?="
+               "=?utf-8?B?VGhpcyBpcyBhIGxvbmcgc3ViamVjdCB3aXRoIGFuIGVtb2ppIPCfmYIgYmxhIGJsYSBibGEgYmxhIGJsYSBibGEgYmxhIGJsYSBibGEgYmxhIGJsYSBibGEgYmxhIGJsYSBibGEgYmxh?="
 
       {:ok, %{status_code: 200}}
     end
@@ -261,14 +261,14 @@ defmodule Bamboo.SesAdapterTest do
 
     expected_request_fn = fn _, _, body, _, _ ->
       email = EmailParser.parse(body)
-      assert EmailParser.to(email) == [~s("=?utf-8?Q?Alice Johnson?=" <alice@example.com>)]
-      assert EmailParser.from(email) == ~s("=?utf-8?Q?Bob McBob?=" <bob@example.com>)
-      assert EmailParser.cc(email) == [~s("=?utf-8?Q?John M=C3=BCller?=" <john@example.com>)]
-      assert EmailParser.bcc(email) == [~s("=?utf-8?Q?Jane Doe?=" <jane@example.com>)]
-      assert EmailParser.reply_to(email) == ~s("=?utf-8?Q?Chuck Eager?=" <chuck@example.com>)
+      assert EmailParser.to(email) == [~s("Alice Johnson" <alice@example.com>)]
+      assert EmailParser.from(email) == ~s("Bob McBob" <bob@example.com>)
+      assert EmailParser.cc(email) == [~s("=?utf-8?B?Sm9obiBNw7xsbGVy?=" <john@example.com>)]
+      assert EmailParser.bcc(email) == [~s("Jane Doe" <jane@example.com>)]
+      assert EmailParser.reply_to(email) == ~s("Chuck Eager" <chuck@example.com>)
 
       assert EmailParser.subject(email) ==
-               "=?utf-8?Q?Welcome to the app this is a longer subject?="
+               "Welcome to the app this is a longer subject"
 
       {:ok, %{status_code: 200}}
     end
