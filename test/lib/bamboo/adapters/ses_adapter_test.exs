@@ -264,9 +264,17 @@ defmodule Bamboo.SesAdapterTest do
       email = EmailParser.parse(body)
       assert EmailParser.to(email) == [~s("Alice Johnson" <alice@example.com>)]
       assert EmailParser.from(email) == ~s("Bob McBob" <bob@example.com>)
-      assert EmailParser.cc(email) == [~s("=?utf-8?B?#{Base.encode64("John Müller")}?=" <john@example.com>)]
-      assert EmailParser.bcc(email) == [~s("=?utf-8?B?#{Base.encode64("Jane \"The Builder\" Doe")}?=" <jane@example.com>)]
-      assert EmailParser.reply_to(email) == ~s("=?utf-8?B?#{Base.encode64("Chuck (?) Eager")}?=" <chuck@example.com>)
+
+      assert EmailParser.cc(email) == [
+               ~s("=?utf-8?B?#{Base.encode64("John Müller")}?=" <john@example.com>)
+             ]
+
+      assert EmailParser.bcc(email) == [
+               ~s("=?utf-8?B?#{Base.encode64("Jane \"The Builder\" Doe")}?=" <jane@example.com>)
+             ]
+
+      assert EmailParser.reply_to(email) ==
+               ~s("=?utf-8?B?#{Base.encode64("Chuck (?) Eager")}?=" <chuck@example.com>)
 
       assert EmailParser.subject(email) ==
                "Welcome to the app this is a longer subject"
