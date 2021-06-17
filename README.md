@@ -1,12 +1,18 @@
-![Elixir CI](https://github.com/kalys/bamboo_ses/workflows/Elixir%20CI/badge.svg)
-
 # BambooSes
+
+[![Elixir CI](https://github.com/kalys/bamboo_ses/actions/workflows/elixir.yml/badge.svg)](https://github.com/kalys/bamboo_ses/actions/workflows/elixir.yml)
+[![Module Version](https://img.shields.io/hexpm/v/bamboo_ses.svg)](https://hex.pm/packages/bamboo_ses)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/bamboo_ses/)
+[![Total Download](https://img.shields.io/hexpm/dt/bamboo_ses.svg)](https://hex.pm/packages/bamboo_ses)
+[![License](https://img.shields.io/hexpm/l/bamboo_ses.svg)](https://github.com/kalys/bamboo_ses/blob/master/LICENSE.md)
+[![Last Updated](https://img.shields.io/github/last-commit/kalys/bamboo_ses.svg)](https://github.com/kalys/bamboo_ses/commits/master)
+
 
 AWS SES adapter for Bamboo
 
 ## Installation
 
-The package can be installed by adding `bamboo_ses` to your list of dependencies in `mix.exs`:
+The package can be installed by adding `:bamboo_ses` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -28,7 +34,7 @@ config :my_app, MyApp.Mailer,
 This package has [ExAws](https://github.com/ex-aws/ex_aws) as a dependency, and you have to configure it. To find more
 on AWS key configuration, please follow [this link](https://github.com/ex-aws/ex_aws#aws-key-configuration).
 
-You can also override the default ExAws configuration defining a Keyword list as `ex_aws` key in the mailer config:
+You can also override the default ExAws configuration defining a Keyword list as `:ex_aws` key in the mailer config:
 
 ```elixir
 config :my_app, MyApp.Mailer,
@@ -37,13 +43,15 @@ config :my_app, MyApp.Mailer,
 ```
 
 ## Usage
-#### Configuration Sets
 
 ```elixir
 email = TestBambooSes.welcome_email()
 email = Bamboo.SesAdapter.set_configuration_set(email, "configuration_set_name")
 TestBambooSes.Mailer.deliver_now(email)
 ```
-## Documentation
 
-Documentation can be found at [https://hexdocs.pm/bamboo_ses](https://hexdocs.pm/bamboo_ses).
+## Copyright and License
+
+Copyright (c) 2018 Kalys Osmonov
+
+This library is released under the MIT License. See the [LICENSE.md](./LICENSE.md) file.

@@ -1,18 +1,21 @@
 defmodule Bamboo.SesAdapter.RFC2822Renderer do
+  @moduledoc """
+  RFC2822 parser will attempt to render a valid RFC2822 message
+  from a `%Mail.Message{}` data model.
+
+      Mail.Renderers.RFC2822.render(message)
+
+  The email validation regex defaults to `~r/\w+@\w+\.\w+/`
+  and can be overridden with the following config:
+
+      config :mail, email_regex: custom_regex
+
+  """
+
   import Mail.Message, only: [match_content_type?: 2]
 
   @days ~w(Mon Tue Wed Thu Fri Sat Sun)
   @months ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
-
-  @moduledoc """
-  RFC2822 Parser
-  Will attempt to render a valid RFC2822 message
-  from a `%Mail.Message{}` data model.
-      Mail.Renderers.RFC2822.render(message)
-  The email validation regex defaults to `~r/\w+@\w+\.\w+/`
-  and can be overridden with the following config:
-      config :mail, email_regex: custom_regex
-  """
 
   @blacklisted_headers []
   @address_types ["From", "To", "Reply-To", "Cc", "Bcc"]
@@ -25,7 +28,7 @@ defmodule Bamboo.SesAdapter.RFC2822Renderer do
                           )
 
   @doc """
-  Renders a message according to the RFC2822 spec
+  Renders a message according to the RFC2822 spec.
   """
   def render(%Mail.Message{multipart: true} = message) do
     message
@@ -38,9 +41,10 @@ defmodule Bamboo.SesAdapter.RFC2822Renderer do
     do: render_part(message)
 
   @doc """
-  Render an individual part
+  Render an individual part.
+
   An optional function can be passed used during the rendering of each
-  individual part
+  individual part.
   """
   def render_part(message, render_part_function \\ &render_part/1)
 
@@ -69,7 +73,7 @@ defmodule Bamboo.SesAdapter.RFC2822Renderer do
   defp render_header({key, value}), do: render_header(key, value)
 
   @doc """
-  Will render a given header according to the RFC2822 spec
+  Renders a given header according to the RFC2822 spec.
   """
   def render_header(key, value)
 
@@ -152,8 +156,9 @@ defmodule Bamboo.SesAdapter.RFC2822Renderer do
   end
 
   @doc """
-  Will render all headers according to the RFC2822 spec
-  Can take an optional list of headers to blacklist
+  Renders all headers according to the RFC2822 spec.
+
+  Can take an optional list of headers to blacklist.
   """
   def render_headers(headers, blacklist \\ [])
 
@@ -173,9 +178,11 @@ defmodule Bamboo.SesAdapter.RFC2822Renderer do
   end
 
   @doc """
-  Builds a RFC2822 timestamp from an Erlang timestamp
-  [RFC2822 3.3 - Date and Time Specification](https://tools.ietf.org/html/rfc2822#section-3.3)
-  This function always assumes the Erlang timestamp is in Universal time, not Local time
+  Builds a RFC2822 timestamp from an Erlang timestamp.
+
+  This function always assumes the Erlang timestamp is in Universal time, not Local time.
+
+  See [RFC2822 3.3 - Date and Time Specification](https://tools.ietf.org/html/rfc2822#section-3.3)
   """
   def timestamp_from_erl({{year, month, day} = date, {hour, minute, second}}) do
     day_name = Enum.at(@days, :calendar.day_of_the_week(date) - 1)
