@@ -1,29 +1,28 @@
 defmodule BambooSes.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/kalys/bamboo_ses"
+  @version "0.2.0"
+
   def project do
     [
       app: :bamboo_ses,
       elixir: "~> 1.6",
-      description: description(),
+      version: @version,
       deps: deps(),
       docs: docs(),
       package: package(),
       start_permanent: Mix.env() == :prod,
-      source_url: "https://github.com/kalys/bamboo_ses",
-      version: "0.2.0",
       elixirc_paths: elixirc_paths(Mix.env())
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
       extra_applications: [:logger]
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:ex_aws_ses, "~> 2.1.1"},
@@ -32,20 +31,27 @@ defmodule BambooSes.MixProject do
       {:jason, "~> 1.1"},
       {:mox, "~> 1.0", only: :test},
       {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.14", only: :dev}
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
 
-  defp description do
-    "AWS SES adapter for Bamboo"
-  end
-
   defp docs do
-    [main: "readme", extras: ["README.md"]]
+    [
+      extras: [
+        "CONTRIBUTING.md": [title: "Contributing"],
+        "CODE_OF_CONDUCT.md": [title: "Code of Conduct"],
+        "LICENSE.md": [title: "License"],
+        "README.md": [title: "Overview"]
+      ],
+      main: "readme",
+      source_url: @source_url,
+      formatters: ["html"]
+    ]
   end
 
   defp package do
     [
+      description: "AWS SES adapter for Bamboo",
       maintainers: ["Kalys Osmonov <kalys@osmonov.com>"],
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/kalys/bamboo_ses"}
