@@ -88,7 +88,7 @@ defmodule Bamboo.SesAdapter do
   defp put_text(message, nil), do: message
 
   defp put_text(message, body) do
-    if ascii_only(body) do
+    if ascii?(body) do
       Mail.put_text(message, body)
     else
       Mail.put_text(message, body, charset: "UTF-8")
@@ -98,7 +98,7 @@ defmodule Bamboo.SesAdapter do
   defp put_html(message, nil), do: message
 
   defp put_html(message, body) do
-    if ascii_only(body) do
+    if ascii?(body) do
       Mail.put_html(message, body)
     else
       Mail.put_html(message, body, charset: "UTF-8")
