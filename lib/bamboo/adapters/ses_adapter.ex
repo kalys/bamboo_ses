@@ -87,11 +87,23 @@ defmodule Bamboo.SesAdapter do
 
   defp put_text(message, nil), do: message
 
-  defp put_text(message, body), do: Mail.put_text(message, body)
+  defp put_text(message, body) do
+    if ascii_only(body) do
+      Mail.put_text(message, body)
+    else
+      Mail.put_text(message, body, charset: "UTF-8")
+    end
+  end
 
   defp put_html(message, nil), do: message
 
-  defp put_html(message, body), do: Mail.put_html(message, body)
+  defp put_html(message, body) do
+    if ascii_only(body) do
+      Mail.put_html(message, body)
+    else
+      Mail.put_html(message, body, charset: "UTF-8")
+    end
+  end
 
   @doc """
   Set the SES configuration set name.
