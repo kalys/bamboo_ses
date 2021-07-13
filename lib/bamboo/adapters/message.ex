@@ -1,0 +1,65 @@
+defmodule BambooSes.Message do
+  @moduledoc false
+
+  alias __MODULE__
+  alias BambooSes.Message.{Destination, Content}
+  alias BambooSes.Address
+
+  defstruct FromEmailAddress: nil,
+            FromEmailAddressIdentityArn: nil,
+            ConfigurationSetName: nil,
+            Destination: nil,
+            ReplyToAddresses: [],
+            Content: %Content{}
+
+  def put_from(message, from) do
+    %Message{message | FromEmailAddress: Address.prepare(from)}
+  end
+
+  def put_from_arn(message, value) when is_binary(value),
+    do: %Message{message | FromEmailAddressIdentityArn: value}
+  def put_from_arn(message, _value), do: message
+
+  def put_reply_to(message, addresses) when is_list(addresses),
+    do: %Message{message | ReplyToAddresses: Enum.map(addresses, &Address.prepare(&1))}
+  def put_reply_to(message, reply_to),
+    do: %Message{message | ReplyToAddresses: [Address.prepare(reply_to) | message."ReplyToAddresses"]}
+
+  def put_destination(message, to, cc, bcc) do
+    destination = %Destination{}
+      |> Destination.put_to(to)
+      |> Destination.put_cc(cc)
+      |> Destination.put_bcc(bcc)
+    %Message{message | Destination: destination }
+  end
+
+  def put_subject(message, subject) do
+    content = Content.put_subject(message."Content", subject)
+    %Message{message | Content: content}
+  end
+
+  def put_text(message, text) do
+    content = Content.put_text(message."Content", text)
+    %Message{message | Content: content}
+  end
+
+  def put_html(message, html) do
+    content = Content.put_html(message."Content", html)
+    %Message{message | Content: content}
+  end
+
+  def put_configuration_set_name(message, value) when is_binary(value),
+    do: %Message{message | ConfigurationSetName: value}
+  def put_configuration_set_name(message, _value), do: message
+end
+
+
+defimpl Jason.Encoder, for: [BambooSes.Message] do
+  def encode(struct, opts) do
+    struct
+    |> Map.from_struct
+    |> Enum.map(&(&1))
+    |> Enum.filter(fn {_k, v} -> !is_nil(v) end)
+    |> Jason.Encode.keyword(opts)
+  end
+end
