@@ -9,7 +9,6 @@ defmodule BambooSes.EmailParser do
   Parse SES email body to raw email binary.
   """
   def to_binary(ses_body) do
-
     IO.inspect(Jason.decode(ses_body))
 
     ses_body
