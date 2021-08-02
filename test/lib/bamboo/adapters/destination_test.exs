@@ -42,14 +42,15 @@ defmodule BambooSes.DestinationTest do
       {"John Müller", "john@example.com"},
       {"Jane \"The Builder\" Doe", "jane@example.com"}
     ]
+
     destination = Destination.put_to(%Destination{}, to)
 
     assert destination."ToAddresses" == [
-      ~s("Alice Johnson" <alice@example.com>),
-      ~s("=?utf-8?B?#{Base.encode64("Chuck (?) Eager")}?=" <chuck@example.com>),
-      ~s("=?utf-8?B?#{Base.encode64("John Müller")}?=" <john@example.com>),
-      ~s("=?utf-8?B?#{Base.encode64("Jane \"The Builder\" Doe")}?=" <jane@example.com>)
-    ]
+             ~s("Alice Johnson" <alice@example.com>),
+             ~s("=?utf-8?B?#{Base.encode64("Chuck (?) Eager")}?=" <chuck@example.com>),
+             ~s("=?utf-8?B?#{Base.encode64("John Müller")}?=" <john@example.com>),
+             ~s("=?utf-8?B?#{Base.encode64("Jane \"The Builder\" Doe")}?=" <jane@example.com>)
+           ]
   end
 
   test "encodes domain part with puny code" do
@@ -57,16 +58,18 @@ defmodule BambooSes.DestinationTest do
       {nil, "alice@möhren.de"},
       {nil, "bob@rüben.de"}
     ]
+
     destination = Destination.put_to(%Destination{}, to)
 
     assert destination."ToAddresses" == [
-      "alice@xn--mhren-jua.de",
-      "bob@xn--rben-0ra.de"
-    ]
+             "alice@xn--mhren-jua.de",
+             "bob@xn--rben-0ra.de"
+           ]
   end
 
   test "generates json only for non-empty keys" do
-    json = %Destination{}
+    json =
+      %Destination{}
       |> Destination.put_to([{nil, "to@ex.to"}])
       |> Jason.encode!()
 

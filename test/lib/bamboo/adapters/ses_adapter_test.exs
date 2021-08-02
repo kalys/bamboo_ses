@@ -30,6 +30,7 @@ defmodule Bamboo.SesAdapterTest do
   test "delivers successfully" do
     expected_request_fn = fn _, _, body, _, _ ->
       {:ok, message} = Jason.decode(body)
+
       %{
         "FromEmailAddress" => from,
         "ReplyToAddresses" => [reply_to],
@@ -54,6 +55,7 @@ defmodule Bamboo.SesAdapterTest do
           }
         }
       } = message
+
       assert from == "bob@example.com"
       assert to == "alice@example.com"
       assert cc == "john@example.com"
@@ -99,6 +101,7 @@ defmodule Bamboo.SesAdapterTest do
   test "delivers successfully email without body" do
     expected_request_fn = fn _, _, body, _, _ ->
       {:ok, message} = Jason.decode(body)
+
       %{
         "Content" => %{
           "Simple" => %{
@@ -109,6 +112,7 @@ defmodule Bamboo.SesAdapterTest do
           }
         }
       } = message
+
       assert text == nil
       assert html == nil
       {:ok, %{status_code: 200, body: body}}
@@ -182,6 +186,7 @@ defmodule Bamboo.SesAdapterTest do
 
     expected_request_fn = fn _, _, body, _, _ ->
       {:ok, message} = Jason.decode(body)
+
       %{
         "ConfigurationSetName" => configuration_set_name
       } = message
@@ -194,6 +199,133 @@ defmodule Bamboo.SesAdapterTest do
 
     new_email()
     |> SesAdapter.set_configuration_set(expected_configuration_set_name)
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "sets a from arn" do
+    expected_from_arn = "arn:aws:ses:us-east-1:123456789012:identity/example.com"
+
+    expected_request_fn = fn _, _, body, _, _ ->
+      {:ok, message} = Jason.decode(body)
+
+      %{
+        "FromEmailAddressIdentityArn" => from_arn
+      } = message
+
+      assert from_arn == expected_from_arn
+      {:ok, %{status_code: 200, body: body}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    new_email()
+    |> SesAdapter.set_from_arn(expected_from_arn)
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "sets a feedback forwarding address" do
+    expected_feedback_forwarding_address = "feedback@example.com"
+
+    expected_request_fn = fn _, _, body, _, _ ->
+      {:ok, message} = Jason.decode(body)
+
+      %{
+        "FeedbackForwardingEmailAddress" => feedback_forwarding_address
+      } = message
+
+      assert feedback_forwarding_address == expected_feedback_forwarding_address
+      {:ok, %{status_code: 200, body: body}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    new_email()
+    |> SesAdapter.set_feedback_forwarding_address(expected_feedback_forwarding_address)
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "sets a feedback forwarding address arn" do
+    expected_feedback_forwarding_address_arn =
+      "arn:aws:ses:us-east-1:123456789012:identity/example.com"
+
+    expected_request_fn = fn _, _, body, _, _ ->
+      {:ok, message} = Jason.decode(body)
+
+      %{
+        "FeedbackForwardingEmailAddressIdentityArn" => arn
+      } = message
+
+      assert arn == expected_feedback_forwarding_address_arn
+      {:ok, %{status_code: 200, body: body}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    new_email()
+    |> SesAdapter.set_feedback_forwarding_address_arn(expected_feedback_forwarding_address_arn)
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "sets ListManagementOptions field" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      {:ok, message} = Jason.decode(body)
+
+      %{
+        "ListManagementOptions" => list_management_options
+      } = message
+
+      assert list_management_options == %{
+               "ContactListName" => "a contact list name",
+               "TopicName" => "a topic name"
+             }
+
+      {:ok, %{status_code: 200, body: body}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    new_email()
+    |> SesAdapter.set_list_management_options("a contact list name", "a topic name")
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "sets email tags" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      {:ok, message} = Jason.decode(body)
+
+      %{
+        "EmailTags" => email_tags
+      } = message
+
+      assert email_tags == [
+               %{
+                 "Name" => "color",
+                 "Value" => "red"
+               },
+               %{
+                 "Name" => "temp",
+                 "Value" => "cold"
+               }
+             ]
+
+      {:ok, %{status_code: 200, body: body}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    email_tags = [
+      %{
+        "Name" => "color",
+        "Value" => "red"
+      },
+      %{
+        "Name" => "temp",
+        "Value" => "cold"
+      }
+    ]
+
+    new_email()
+    |> SesAdapter.set_email_tags([%{}])
     |> SesAdapter.deliver(%{})
   end
 
@@ -264,7 +396,11 @@ defmodule Bamboo.SesAdapterTest do
   # end
 
   test "uses default aws region" do
-    expected_request_fn = fn _, "https://email.us-east-1.amazonaws.com/v2/email/outbound-emails", body, _, _ ->
+    expected_request_fn = fn _,
+                             "https://email.us-east-1.amazonaws.com/v2/email/outbound-emails",
+                             body,
+                             _,
+                             _ ->
       {:ok, %{status_code: 200, body: body}}
     end
 
@@ -274,7 +410,11 @@ defmodule Bamboo.SesAdapterTest do
   end
 
   test "uses configured aws region" do
-    expect(HttpMock, :request, fn _, "https://email.eu-west-1.amazonaws.com/v2/email/outbound-emails", body, _, _ ->
+    expect(HttpMock, :request, fn _,
+                                  "https://email.eu-west-1.amazonaws.com/v2/email/outbound-emails",
+                                  body,
+                                  _,
+                                  _ ->
       {:ok, %{status_code: 200, body: body}}
     end)
 
@@ -286,92 +426,5 @@ defmodule Bamboo.SesAdapterTest do
 
     {:error, %{message: msg}} = SesAdapter.deliver(new_email(), %{})
     assert msg == "{:http_error, 404, %{status_code: 404}}"
-  end
-
-  # TODO:
-  # + test for destination addresses
-  # - test for from address
-  # - test for reply to
-  test "friendly name encoding" do
-    email =
-      Email.new_email(
-        to: {"Alice Johnson", "alice@example.com"},
-        from: {"Bob McBob", "bob@example.com"},
-        headers: %{"Reply-To" => {"Chuck (?) Eager", "chuck@example.com"}},
-        cc: {"John Müller", "john@example.com"},
-        bcc: {"Jane \"The Builder\" Doe", "jane@example.com"},
-        subject: "Welcome to the app this is a longer subject"
-      )
-      |> Mailer.normalize_addresses()
-
-    expected_request_fn = fn _, _, body, _, _ ->
-
-      {:ok, message} = Jason.decode(body)
-
-      %{
-        "FromEmailAddress" => from,
-        "ReplyToAddresses" => [reply_to],
-        "Destination" => %{
-          "ToAddresses" => [to],
-          "CcAddresses" => [cc],
-          "BccAddresses" => [bcc]
-        }
-      } = message
-
-      assert to == ~s("Alice Johnson" <alice@example.com>)
-      assert from == ~s("Bob McBob" <bob@example.com>)
-      assert cc == ~s("=?utf-8?B?#{Base.encode64("John Müller")}?=" <john@example.com>)
-      assert bcc == ~s("=?utf-8?B?#{Base.encode64("Jane \"The Builder\" Doe")}?=" <jane@example.com>)
-      assert reply_to == ~s("=?utf-8?B?#{Base.encode64("Chuck (?) Eager")}?=" <chuck@example.com>)
-
-      {:ok, %{status_code: 200, body: body}}
-    end
-
-    expect(HttpMock, :request, expected_request_fn)
-
-    SesAdapter.deliver(email, %{})
-  end
-
-  test "subject when content type is simple" do
-    # assert EmailParser.subject(email) ==
-    #          "Welcome to the app this is a longer subject"
-  end
-
-  test "subject when content type is raw" do
-
-  end
-
-  # TODO:
-  # + test for destination addresses
-  # - test for from address
-  # - test for reply to
-  test "punycode" do
-    email =
-      Email.new_email(
-        to: "alice@möhren.de",
-        cc: "bob@rüben.de",
-        from: "someone@example.com"
-      )
-      |> Mailer.normalize_addresses()
-
-    expected_request_fn = fn _, _, body, _, _ ->
-      {:ok, message} = Jason.decode(body)
-
-      %{
-        "Destination" => %{
-          "ToAddresses" => [to],
-          "CcAddresses" => [cc]
-        }
-      } = message
-
-      assert to == "alice@xn--mhren-jua.de"
-      assert cc == "bob@xn--rben-0ra.de"
-
-      {:ok, %{status_code: 200, body: body}}
-    end
-
-    expect(HttpMock, :request, expected_request_fn)
-
-    SesAdapter.deliver(email, %{})
   end
 end
