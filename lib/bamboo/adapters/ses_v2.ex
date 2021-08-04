@@ -5,7 +5,7 @@ defmodule Bamboo.SesAdapter.SESv2 do
 
   @doc false
   def send_email(message) do
-    op = %ExAws.Operation.JSON{
+    %ExAws.Operation.JSON{
       path: "/v2/email/outbound-emails",
       http_method: :post,
       service: :ses,

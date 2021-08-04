@@ -2,9 +2,7 @@ defmodule BambooSes.Message.Content do
   @moduledoc false
 
   alias __MODULE__
-  alias BambooSes.Message.SimpleContent
 
-  @derive Jason.Encoder
   defstruct Simple: nil,
             Template: nil
 

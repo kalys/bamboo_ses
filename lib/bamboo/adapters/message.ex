@@ -65,11 +65,6 @@ defmodule BambooSes.Message do
     %Message{message | Destination: destination}
   end
 
-  # def put_subject(message, subject) do
-  #   content = Content.put_subject(message."Content", subject)
-  #   %Message{message | Content: content}
-  # end
-
   def put_configuration_set_name(message, value) when is_binary(value),
     do: %Message{message | ConfigurationSetName: value}
 
@@ -92,7 +87,7 @@ defmodule BambooSes.Message do
   end
 end
 
-defimpl Jason.Encoder, for: [BambooSes.Message] do
+defimpl Jason.Encoder, for: [BambooSes.Message, BambooSes.Message.Content] do
   def encode(struct, opts) do
     struct
     |> Map.from_struct()
