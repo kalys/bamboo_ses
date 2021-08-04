@@ -105,16 +105,13 @@ defmodule Bamboo.SesAdapterTest do
       %{
         "Content" => %{
           "Simple" => %{
-            "Body" => %{
-              "Text" => text,
-              "Html" => html
-            }
+            "Body" => content_body
           }
         }
       } = message
 
-      assert text == nil
-      assert html == nil
+      assert content_body == %{}
+
       {:ok, %{status_code: 200, body: body}}
     end
 
@@ -325,56 +322,41 @@ defmodule Bamboo.SesAdapterTest do
     ]
 
     new_email()
-    |> SesAdapter.set_email_tags([%{}])
+    |> SesAdapter.set_email_tags(email_tags)
     |> SesAdapter.deliver(%{})
   end
 
-  # TODO: implement template content type
-  # test "sets the template" do
-  #   expected_template = "some-template-set"
+  test "sets template name, data, arn" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      {:ok, message} = Jason.decode(body)
 
-  #   expected_request_fn = fn _, _, body, _, _ ->
-  #     template =
-  #       body
-  #       |> URI.decode_query()
-  #       |> Map.get("Template")
+      %{
+        "Content" => %{
+          "Template" => %{
+            "TemplateArn" => arn,
+            "TemplateData" => data,
+            "TemplateName" => name
+          }
+        }
+      } = message
 
-  #     assert template == expected_template
-  #     {:ok, %{status_code: 200}}
-  #   end
+      assert arn == "template arn"
+      assert data == ~s({"key": "value"})
+      assert name == "template name"
 
-  #   expect(HttpMock, :request, expected_request_fn)
+      {:ok, %{status_code: 200, body: body}}
+    end
 
-  #   new_email()
-  #   |> SesAdapter.set_template(expected_template)
-  #   |> SesAdapter.deliver(%{})
-  # end
+    expect(HttpMock, :request, expected_request_fn)
 
-  # TODO: implement template content type
-  # test "sets the template data" do
-  #   set_template = %{
-  #     name: "John",
-  #     cat: true
-  #   }
+    template_name = "template name"
+    template_data = ~s({"key": "value"})
+    template_arn = "template arn"
 
-  #   expected_template = "{\"cat\":true,\"name\":\"John\"}"
-
-  #   expected_request_fn = fn _, _, body, _, _ ->
-  #     template =
-  #       body
-  #       |> URI.decode_query()
-  #       |> Map.get("TemplateData")
-
-  #     assert template == expected_template
-  #     {:ok, %{status_code: 200}}
-  #   end
-
-  #   expect(HttpMock, :request, expected_request_fn)
-
-  #   new_email()
-  #   |> SesAdapter.set_template_data(set_template)
-  #   |> SesAdapter.deliver(%{})
-  # end
+    new_email()
+    |> SesAdapter.set_template_params(template_name, template_data, template_arn)
+    |> SesAdapter.deliver(%{})
+  end
 
   # TODO: implement raw content type
   # test "puts headers" do

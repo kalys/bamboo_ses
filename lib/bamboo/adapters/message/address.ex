@@ -1,4 +1,6 @@
 defmodule BambooSes.Address do
+  @moduledoc false
+
   def prepare(address) when is_binary(address), do: address
   def prepare({nil, address}), do: encode_address(address)
   def prepare({"", address}), do: encode_address(address)
