@@ -65,20 +65,10 @@ defmodule BambooSes.Message do
     %Message{message | Destination: destination}
   end
 
-  def put_subject(message, subject) do
-    content = Content.put_subject(message."Content", subject)
-    %Message{message | Content: content}
-  end
-
-  def put_text(message, text) do
-    content = Content.put_text(message."Content", text)
-    %Message{message | Content: content}
-  end
-
-  def put_html(message, html) do
-    content = Content.put_html(message."Content", html)
-    %Message{message | Content: content}
-  end
+  # def put_subject(message, subject) do
+  #   content = Content.put_subject(message."Content", subject)
+  #   %Message{message | Content: content}
+  # end
 
   def put_configuration_set_name(message, value) when is_binary(value),
     do: %Message{message | ConfigurationSetName: value}
@@ -89,6 +79,17 @@ defmodule BambooSes.Message do
     do: %Message{message | EmailTags: tags}
 
   def put_email_tags(message, _value), do: message
+
+  def put_content(message, template_params, _subject, _text, _html)
+      when is_map(template_params) do
+    content = Content.build_template(template_params)
+    %Message{message | Content: content}
+  end
+
+  def put_content(message, _template_params, subject, text, html) do
+    content = Content.build_simple(subject, text, html)
+    %Message{message | Content: content}
+  end
 end
 
 defimpl Jason.Encoder, for: [BambooSes.Message] do

@@ -27,16 +27,17 @@ defmodule Bamboo.SesAdapter do
     feedback_forwarding_address = email.private[:feedback_forwarding_address]
     feedback_forwarding_address
 
-    template = email.private[:template]
-    template_data = email.private[:template_data]
+    template_params =
+      fetch_template_params(
+        email.private[:template_name],
+        email.private[:template_arn],
+        email.private[:template_data]
+      )
 
     case %Message{}
          |> Message.put_from(email.from)
          |> Message.put_from_arn(from_arn)
          |> Message.put_destination(email.to, email.cc, email.bcc)
-         |> Message.put_subject(email.subject)
-         |> Message.put_text(email.text_body)
-         |> Message.put_html(email.html_body)
          |> Message.put_configuration_set_name(configuration_set_name)
          |> Message.put_feedback_forwarding_address(email.private[:feedback_forwarding_address])
          |> Message.put_feedback_forwarding_address_arn(
@@ -48,7 +49,8 @@ defmodule Bamboo.SesAdapter do
          )
          |> Message.put_email_tags(email.private[:email_tags])
          |> put_headers(email.headers)
-         |> SESv2.send_raw_email()
+         |> Message.put_content(template_params, email.subject, email.text_body, email.html_body)
+         |> SESv2.send_email()
          |> ExAws.request(ex_aws_config) do
       {:ok, response} -> {:ok, response}
       {:error, reason} -> {:error, build_api_error(inspect(reason))}
@@ -96,17 +98,25 @@ defmodule Bamboo.SesAdapter do
   end
 
   @doc """
-  Set the SES template
+  Set the SES template params: name, data, ARN
   """
-  def set_template(mail, template),
-    do: Bamboo.Email.put_private(mail, :template, template)
-
-  @doc """
-  Set the SES template data
-  """
-  def set_template_data(mail, template_data) when is_map(template_data) do
-    Bamboo.Email.put_private(mail, :template_data, Jason.encode!(template_data))
+  def set_template_params(mail, template_name, template_data, template_arn) do
+    mail
+    |> Bamboo.Email.put_private(:template_name, template_name)
+    |> Bamboo.Email.put_private(:template_data, template_data)
+    |> Bamboo.Email.put_private(:template_arn, template_arn)
   end
+
+  defp fetch_template_params(name, arn, data) when is_binary(name) and is_binary(arn),
+    do: %{name: name, arn: arn, data: data}
+
+  defp fetch_template_params(name, _arn, data) when is_binary(name),
+    do: %{name: name, data: data}
+
+  defp fetch_template_params(_name, arn, data) when is_binary(arn),
+    do: %{arn: arn, data: data}
+
+  defp fetch_template_params(_name, _arn, _data), do: nil
 
   defp put_headers(message, headers) when is_map(headers) do
     put_headers(message, Map.to_list(headers))
