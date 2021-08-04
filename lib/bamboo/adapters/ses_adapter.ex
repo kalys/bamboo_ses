@@ -7,7 +7,6 @@ defmodule Bamboo.SesAdapter do
 
   @behaviour Bamboo.Adapter
 
-  alias Bamboo.SesAdapter.RFC2822Renderer
   alias Bamboo.SesAdapter.SESv2
   alias BambooSes.Message
   import Bamboo.ApiError
@@ -24,8 +23,6 @@ defmodule Bamboo.SesAdapter do
     ex_aws_config = Map.get(config, :ex_aws, [])
     configuration_set_name = email.private[:configuration_set_name]
     from_arn = email.private[:from_arn]
-    feedback_forwarding_address = email.private[:feedback_forwarding_address]
-    feedback_forwarding_address
 
     template_params =
       fetch_template_params(
@@ -124,19 +121,19 @@ defmodule Bamboo.SesAdapter do
 
   defp put_headers(message, []), do: message
 
-  defp put_headers(message, [{"Reply-To" = key, {_name, _address} = value} | tail]) do
+  defp put_headers(message, [{"Reply-To" = _key, {_name, _address} = value} | tail]) do
     message
     |> Message.put_reply_to(value)
     |> put_headers(tail)
   end
 
-  defp put_headers(message, [{"Reply-To" = key, value} | tail]) do
+  defp put_headers(message, [{"Reply-To" = _key, value} | tail]) do
     message
     |> Message.put_reply_to(value)
     |> put_headers(tail)
   end
 
-  defp put_headers(message, [{key, value} | tail]), do: message
+  defp put_headers(message, [{_key, _value} | _tail]), do: message
 
   # defp put_attachments(message, []), do: message
 
