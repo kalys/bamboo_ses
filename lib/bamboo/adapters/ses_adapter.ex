@@ -71,7 +71,7 @@ defmodule Bamboo.SesAdapter do
       attachments,
       message,
       fn attachment, message ->
-        headers = attachment.headers || []
+        headers = Map.get(attachment, :headers) || []
         headers = if attachment.content_id,
           do: [{:content_id, attachment.content_id} | headers],
           else: headers
