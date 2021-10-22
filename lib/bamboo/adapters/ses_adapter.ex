@@ -71,12 +71,10 @@ defmodule Bamboo.SesAdapter do
       attachments,
       message,
       fn attachment, message ->
-        headers =
-          if attachment.content_id do
-            [content_id: attachment.content_id]
-          else
-            []
-          end
+        headers = attachment.headers || []
+        headers = if attachment.content_id,
+          do: [{:content_id, attachment.content_id} | headers],
+          else: headers
 
         opts = [headers: headers]
 
