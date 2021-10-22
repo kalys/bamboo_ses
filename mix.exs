@@ -27,7 +27,7 @@ defmodule BambooSes.MixProject do
     [
       {:ex_aws_ses, "~> 2.3.0"},
       {:bamboo, "~> 2.0"},
-      {:mail, "~> 0.2.0"},
+      {:mail, git: "https://github.com/jarrodmoldrich/elixir-mail.git", branch: "feature/inline_attachments", override: true},
       {:jason, "~> 1.1"},
       {:mox, "~> 1.0", only: :test},
       {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
