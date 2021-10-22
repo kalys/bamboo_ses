@@ -200,12 +200,26 @@ defmodule Bamboo.SesAdapter.RFC2822Renderer do
       |> Integer.to_string()
       |> String.pad_leading(2, "0")
 
+  # this function has been duplicated while from a PR in progress in `DockYard/elixir-mail`
+  defp put_parts(message, parts) do
+    put_in(message.parts, message.parts ++ parts)
+  end
+
+  # this function has been duplicated while from a PR in progress in `DockYard/elixir-mail`
+  defp delete_all_parts(message) do
+    put_in(message.parts, [])
+  end
+
+  # this function has been duplicated while from a PR in progress in `DockYard/elixir-mail`
+  defp is_inline_attachment?(message),
+    do: Enum.member?(List.wrap(Mail.Message.get_header(message, :content_disposition)), "inline")
+
   defp split_attachment_parts(message) do
     Enum.reduce(message.parts, [[], [], []], fn part, [texts, mixed, inlines] ->
       cond do
         match_content_type?(part, ~r/text\/(plain|html)/) ->
           [[part | texts], mixed, inlines]
-        Mail.Message.is_inline_attachment?(part) ->
+        is_inline_attachment?(part) ->
           [texts, mixed, [part | inlines]]
         true -> # a mixed part - most likely an attachment
           [texts, [part | mixed], inlines]
@@ -232,7 +246,7 @@ defmodule Bamboo.SesAdapter.RFC2822Renderer do
         body_part =
           Mail.build_multipart()
           |> Mail.Message.put_content_type("multipart/alternative")
-          |> Mail.Message.put_parts(text_parts)
+          |> put_parts(text_parts)
 
         # If any inline attachments, wrap together with text
         # in a "multipart/related" part
@@ -240,15 +254,15 @@ defmodule Bamboo.SesAdapter.RFC2822Renderer do
           Mail.build_multipart()
           |> Mail.Message.put_content_type("multipart/related")
           |> Mail.Message.put_part(body_part)
-          |> Mail.Message.put_parts(inlines)
+          |> put_parts(inlines)
         else
           body_part
         end
 
         message
-        |> Mail.Message.delete_all_parts()
+        |> delete_all_parts()
         |> Mail.Message.put_part(body_part)
-        |> Mail.Message.put_parts(mixed)
+        |> put_parts(mixed)
       else
         # If not text sections, leave all parts as is
         message
