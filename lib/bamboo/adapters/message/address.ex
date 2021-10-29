@@ -9,12 +9,7 @@ defmodule BambooSes.Address do
     "\"#{maybe_rfc1342_encode(name)}\" <#{encode_address(address)}>"
   end
 
-  defp encode_address(address) do
-    [local_part, domain_part] = String.split(address, "@")
-    Enum.join([Mail.Encoders.SevenBit.encode(local_part), :idna.utf8_to_ascii(domain_part)], "@")
-  end
-
-  defp maybe_rfc1342_encode(string) when is_binary(string) do
+  def maybe_rfc1342_encode(string) when is_binary(string) do
     should_encode? = !ascii?(string) || String.contains?(string, ["\"", "?"])
 
     if should_encode? do
@@ -24,7 +19,12 @@ defmodule BambooSes.Address do
     end
   end
 
-  defp maybe_rfc1342_encode(_), do: nil
+  def maybe_rfc1342_encode(_), do: nil
+
+  defp encode_address(address) do
+    [local_part, domain_part] = String.split(address, "@")
+    Enum.join([Mail.Encoders.SevenBit.encode(local_part), :idna.utf8_to_ascii(domain_part)], "@")
+  end
 
   defp rfc1342_encode(string) when is_binary(string) do
     rfc1342_encode(string, [])
@@ -32,9 +32,9 @@ defmodule BambooSes.Address do
 
   defp rfc1342_encode(_), do: nil
 
-  def rfc1342_encode("", acc), do: acc |> Enum.reverse() |> Enum.join(" ")
+  defp rfc1342_encode("", acc), do: acc |> Enum.reverse() |> Enum.join(" ")
 
-  def rfc1342_encode(string, acc) do
+  defp rfc1342_encode(string, acc) do
     # https://tools.ietf.org/html/rfc1342
     # > An encoded-word may not be more than 75 characters long, including
     # > charset, encoding, encoded-text, and delimiters.  If it is desirable
@@ -60,7 +60,7 @@ defmodule BambooSes.Address do
     rfc1342_encode(rest, [encoded | acc])
   end
 
-  defp ascii?(string) do
+  def ascii?(string) do
     non_ascii_chars = Enum.uniq(String.codepoints(string)) -- Enum.map(0..127, fn x -> <<x>> end)
     Enum.empty?(non_ascii_chars)
   end

@@ -24,13 +24,6 @@ defmodule Bamboo.SesAdapter do
     configuration_set_name = email.private[:configuration_set_name]
     from_arn = email.private[:from_arn]
 
-    template_params =
-      fetch_template_params(
-        email.private[:template_name],
-        email.private[:template_arn],
-        email.private[:template_data]
-      )
-
     case %Message{}
          |> Message.put_from(email.from)
          |> Message.put_from_arn(from_arn)
@@ -46,7 +39,7 @@ defmodule Bamboo.SesAdapter do
          )
          |> Message.put_email_tags(email.private[:email_tags])
          |> put_headers(email.headers)
-         |> Message.put_content(template_params, email.subject, email.text_body, email.html_body)
+         |> Message.put_content(email)
          |> SESv2.send_email()
          |> ExAws.request(ex_aws_config) do
       {:ok, response} -> {:ok, response}
@@ -103,17 +96,6 @@ defmodule Bamboo.SesAdapter do
     |> Bamboo.Email.put_private(:template_data, template_data)
     |> Bamboo.Email.put_private(:template_arn, template_arn)
   end
-
-  defp fetch_template_params(name, arn, data) when is_binary(name) and is_binary(arn),
-    do: %{name: name, arn: arn, data: data}
-
-  defp fetch_template_params(name, _arn, data) when is_binary(name),
-    do: %{name: name, data: data}
-
-  defp fetch_template_params(_name, arn, data) when is_binary(arn),
-    do: %{arn: arn, data: data}
-
-  defp fetch_template_params(_name, _arn, _data), do: nil
 
   defp put_headers(message, headers) when is_map(headers) do
     put_headers(message, Map.to_list(headers))

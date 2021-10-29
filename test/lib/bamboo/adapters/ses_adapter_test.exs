@@ -2,23 +2,9 @@ defmodule Bamboo.SesAdapterTest do
   use ExUnit.Case
   import Mox
   alias Bamboo.{Email, Mailer, SesAdapter}
-  alias BambooSes.EmailParser
+  alias BambooSes.{EmailParser, TestHelpers}
   alias ExAws.Request.HttpMock
   require IEx
-
-  defp new_email(to \\ "alice@example.com", subject \\ "Welcome to the app.") do
-    Email.new_email(
-      to: to,
-      from: "bob@example.com",
-      cc: "john@example.com",
-      bcc: "jane@example.com",
-      subject: subject,
-      headers: %{"Reply-To" => "chuck@example.com"},
-      html_body: "<strong>Thanks for joining!</strong>",
-      text_body: "Thanks for joining!"
-    )
-    |> Mailer.normalize_addresses()
-  end
 
   setup do
     System.put_env("AWS_ACCESS_KEY_ID", "AKIAIOSFODNN7EXAMPLE")
@@ -33,7 +19,6 @@ defmodule Bamboo.SesAdapterTest do
 
       %{
         "FromEmailAddress" => from,
-        "ReplyToAddresses" => [reply_to],
         "Destination" => %{
           "ToAddresses" => [to],
           "CcAddresses" => [cc],
@@ -63,14 +48,13 @@ defmodule Bamboo.SesAdapterTest do
       assert subject == "Welcome to the app."
       assert text == "Thanks for joining!"
       assert html == "<strong>Thanks for joining!</strong>"
-      assert reply_to == "chuck@example.com"
 
       {:ok, %{status_code: 200, body: body}}
     end
 
     expect(HttpMock, :request, expected_request_fn)
 
-    SesAdapter.deliver(new_email(), %{})
+    SesAdapter.deliver(TestHelpers.new_email(), %{})
   end
 
   # TODO: enable when raw content is implemented
@@ -90,7 +74,7 @@ defmodule Bamboo.SesAdapterTest do
   #   expect(HttpMock, :request, expected_request_fn)
 
   #   SesAdapter.deliver(
-  #     new_email(
+  #     TestHelpers.new_email(
   #       "alice@example.com",
   #       "This is a long subject with an emoji 🙂 bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla"
   #     ),
@@ -133,7 +117,7 @@ defmodule Bamboo.SesAdapterTest do
 
   #   expect(HttpMock, :request, expected_request_fn)
 
-  #   SesAdapter.deliver(new_email("jim@my-example-host.com"), %{})
+  #   SesAdapter.deliver(TestHelpers.new_email("jim@my-example-host.com"), %{})
   # end
 
   # TODO: enable when raw content is implemented
@@ -153,7 +137,7 @@ defmodule Bamboo.SesAdapterTest do
 
   #   expect(HttpMock, :request, expected_request_fn)
 
-  #   new_email()
+  #   TestHelpers.new_email()
   #   |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
   #   |> Email.put_attachment(Path.join(__DIR__, "../../../support/song.mp3"))
   #   |> SesAdapter.deliver(%{})
@@ -173,7 +157,7 @@ defmodule Bamboo.SesAdapterTest do
   #   expect(HttpMock, :request, expected_request_fn)
   #   path = Path.join(__DIR__, "../../../support/invoice.pdf")
 
-  #   new_email()
+  #   TestHelpers.new_email()
   #   |> Email.put_attachment(path, content_id: "invoice-pdf-1")
   #   |> SesAdapter.deliver(%{})
   # end
@@ -194,7 +178,7 @@ defmodule Bamboo.SesAdapterTest do
 
     expect(HttpMock, :request, expected_request_fn)
 
-    new_email()
+    TestHelpers.new_email()
     |> SesAdapter.set_configuration_set(expected_configuration_set_name)
     |> SesAdapter.deliver(%{})
   end
@@ -215,7 +199,7 @@ defmodule Bamboo.SesAdapterTest do
 
     expect(HttpMock, :request, expected_request_fn)
 
-    new_email()
+    TestHelpers.new_email()
     |> SesAdapter.set_from_arn(expected_from_arn)
     |> SesAdapter.deliver(%{})
   end
@@ -236,7 +220,7 @@ defmodule Bamboo.SesAdapterTest do
 
     expect(HttpMock, :request, expected_request_fn)
 
-    new_email()
+    TestHelpers.new_email()
     |> SesAdapter.set_feedback_forwarding_address(expected_feedback_forwarding_address)
     |> SesAdapter.deliver(%{})
   end
@@ -258,7 +242,7 @@ defmodule Bamboo.SesAdapterTest do
 
     expect(HttpMock, :request, expected_request_fn)
 
-    new_email()
+    TestHelpers.new_email()
     |> SesAdapter.set_feedback_forwarding_address_arn(expected_feedback_forwarding_address_arn)
     |> SesAdapter.deliver(%{})
   end
@@ -281,7 +265,7 @@ defmodule Bamboo.SesAdapterTest do
 
     expect(HttpMock, :request, expected_request_fn)
 
-    new_email()
+    TestHelpers.new_email()
     |> SesAdapter.set_list_management_options("a contact list name", "a topic name")
     |> SesAdapter.deliver(%{})
   end
@@ -321,7 +305,7 @@ defmodule Bamboo.SesAdapterTest do
       }
     ]
 
-    new_email()
+    TestHelpers.new_email()
     |> SesAdapter.set_email_tags(email_tags)
     |> SesAdapter.deliver(%{})
   end
@@ -353,29 +337,75 @@ defmodule Bamboo.SesAdapterTest do
     template_data = ~s({"key": "value"})
     template_arn = "template arn"
 
-    new_email()
+    TestHelpers.new_email()
     |> SesAdapter.set_template_params(template_name, template_data, template_arn)
     |> SesAdapter.deliver(%{})
   end
 
-  # TODO: implement raw content type
-  # test "puts headers" do
-  #   expected_request_fn = fn _, _, body, _, _ ->
-  #     email = EmailParser.parse(body)
+  test "handles Reply-to header" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      {:ok, message} = Jason.decode(body)
 
-  #     assert header = EmailParser.header(email, "x-custom-header")
-  #     assert header.raw == "X-Custom-Header: header-value; another-value"
-  #     assert EmailParser.reply_to(email) == "chuck@example.com"
+      %{
+        "ReplyToAddresses" => [reply_to],
+        "Content" => %{
+          "Simple" => %{
+            "Subject" => %{
+              "Data" => subject
+            },
+            "Body" => %{
+              "Text" => %{
+                "Data" => text
+              },
+              "Html" => %{
+                "Data" => html
+              }
+            }
+          }
+        }
+      } = message
 
-  #     {:ok, %{status_code: 200}}
-  #   end
+      assert reply_to == "chuck@example.com"
+      assert subject == "Welcome to the app."
+      assert text == "Thanks for joining!"
+      assert html == "<strong>Thanks for joining!</strong>"
 
-  #   expect(HttpMock, :request, expected_request_fn)
+      {:ok, %{status_code: 200, body: body}}
+    end
 
-  #   new_email()
-  #   |> Email.put_header("X-Custom-Header", "header-value; another-value")
-  #   |> SesAdapter.deliver(%{})
-  # end
+    expect(HttpMock, :request, expected_request_fn)
+
+    TestHelpers.new_email()
+    |> Email.put_header("Reply-To", "chuck@example.com")
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "puts raw content" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      {:ok, message} = Jason.decode(body)
+
+      %{
+        "Content" => %{
+          "Raw" => %{
+            "Data" => raw_content
+          }
+        }
+      } = message
+
+      email = EmailParser.parse(raw_content)
+
+      assert header = EmailParser.header(email, "x-custom-header")
+      assert header.raw == "X-Custom-Header: header-value; another-value"
+
+      {:ok, %{status_code: 200, body: body}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    TestHelpers.new_email()
+    |> Email.put_header("X-Custom-Header", "header-value; another-value")
+    |> SesAdapter.deliver(%{})
+  end
 
   test "uses default aws region" do
     expected_request_fn = fn _,
@@ -388,7 +418,7 @@ defmodule Bamboo.SesAdapterTest do
 
     expect(HttpMock, :request, expected_request_fn)
 
-    SesAdapter.deliver(new_email(), %{})
+    SesAdapter.deliver(TestHelpers.new_email(), %{})
   end
 
   test "uses configured aws region" do
@@ -400,13 +430,13 @@ defmodule Bamboo.SesAdapterTest do
       {:ok, %{status_code: 200, body: body}}
     end)
 
-    SesAdapter.deliver(new_email(), %{ex_aws: [region: "eu-west-1"]})
+    SesAdapter.deliver(TestHelpers.new_email(), %{ex_aws: [region: "eu-west-1"]})
   end
 
   test "returns error" do
     expect(HttpMock, :request, fn _, _, _, _, _ -> {:ok, %{status_code: 404}} end)
 
-    {:error, %{message: msg}} = SesAdapter.deliver(new_email(), %{})
+    {:error, %{message: msg}} = SesAdapter.deliver(TestHelpers.new_email(), %{})
     assert msg == "{:http_error, 404, %{status_code: 404}}"
   end
 end

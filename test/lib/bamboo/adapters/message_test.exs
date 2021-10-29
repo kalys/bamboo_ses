@@ -114,6 +114,6 @@ defmodule BambooSes.MessageTest do
 
   #   IO.inspect(message)
 
-  #   assert Jason.encode!(message) == "{\"Content\":null,\"Destination\":null,\"FromEmailAddress\":null,\"ReplyToAddresses\":[\"jane@example.com\",\"john@example.com\"]}"
+  #   assert Jason.encode!(message) == "{\"Content\":{},\"Destination\":null,\"FromEmailAddress\":null,\"ReplyToAddresses\":[\"jane@example.com\",\"john@example.com\"]}"
   # end
 end
