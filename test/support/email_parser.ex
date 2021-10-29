@@ -8,15 +8,8 @@ defmodule BambooSes.EmailParser do
   @doc """
   Parse SES email body to raw email binary.
   """
-  def to_binary(ses_body) do
-    ses_body
-    |> URI.decode_query()
-    |> Map.get("RawMessage.Data")
-    |> Base.decode64!()
-  end
-
   def parse(ses_body) do
-    lines = ses_body |> to_binary() |> String.split("\r\n")
+    lines = ses_body |> Base.decode64!() |> String.split("\r\n")
 
     parse_lines(%ParsedEmail{}, lines)
   end

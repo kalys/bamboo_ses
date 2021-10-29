@@ -75,16 +75,8 @@ defmodule BambooSes.Message do
 
   def put_email_tags(message, _value), do: message
 
-  def put_content(message, template_params, _subject, _text, _html)
-      when is_map(template_params) do
-    content = Content.build_template(template_params)
-    %Message{message | Content: content}
-  end
-
-  def put_content(message, _template_params, subject, text, html) do
-    content = Content.build_simple(subject, text, html)
-    %Message{message | Content: content}
-  end
+  def put_content(message, email),
+    do: %Message{message | Content: Content.build_from_bamboo_email(email)}
 end
 
 defimpl Jason.Encoder, for: [BambooSes.Message, BambooSes.Message.Content] do
