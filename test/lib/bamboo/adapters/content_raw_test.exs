@@ -25,9 +25,28 @@ defmodule BambooSes.ContentRawTest do
     assert header.raw == "X-Custom-Header: custom-header-value"
   end
 
-  # TODO test "generates raw content when there are attachments" do
+  test "generates raw content when there are attachments" do
+    content =
+      TestHelpers.new_email()
+      |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
+      |> Email.put_attachment(Path.join(__DIR__, "../../../support/song.mp3"))
+      |> Content.build_from_bamboo_email()
 
-  # end
+    %Content{
+      Raw: %{
+        Data: raw_data
+      }
+    } = content
+
+    filenames =
+      raw_data
+      |> EmailParser.parse()
+      |> EmailParser.attachments()
+      |> Enum.map(&elem(&1, 0))
+      |> Enum.sort()
+
+    assert filenames == ["invoice.pdf", "song.mp3"]
+  end
 
   # TODO: enable when raw content is implemented
   # test "delivers attachments" do

@@ -45,6 +45,7 @@ defmodule BambooSes.Message.Content do
       |> put_raw_text(text)
       |> put_raw_html(html)
       |> put_headers(headers)
+      |> put_attachments(attachments)
       |> Mail.render(Mail.Renderers.RFC2822)
       |> Base.encode64()
 
@@ -135,5 +136,26 @@ defmodule BambooSes.Message.Content do
     message
     |> Mail.Message.put_header(key, value)
     |> put_headers(tail)
+  end
+
+  defp put_attachments(message, []), do: message
+
+  defp put_attachments(message, attachments) do
+    Enum.reduce(
+      attachments,
+      message,
+      fn attachment, message ->
+        headers =
+          if attachment.content_id do
+            [content_id: attachment.content_id]
+          else
+            []
+          end
+
+        opts = [headers: headers]
+
+        Mail.put_attachment(message, {attachment.filename, attachment.data}, opts)
+      end
+    )
   end
 end
