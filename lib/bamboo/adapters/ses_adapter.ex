@@ -111,19 +111,6 @@ defmodule Bamboo.SesAdapter do
   def set_configuration_set(mail, configuration_set_name),
     do: Bamboo.Email.put_private(mail, :configuration_set_name, configuration_set_name)
 
-  @doc """
-  Set the SES template
-  """
-  def set_template(mail, template),
-    do: Bamboo.Email.put_private(mail, :template, template)
-
-  @doc """
-  Set the SES template data
-  """
-  def set_template_data(mail, template_data) when is_map(template_data) do
-    Bamboo.Email.put_private(mail, :template_data, Jason.encode!(template_data))
-  end
-
   defp prepare_addresses(recipients), do: Enum.map(recipients, &prepare_address(&1))
 
   defp prepare_address({nil, address}), do: encode_address(address)
