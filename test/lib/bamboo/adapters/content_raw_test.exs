@@ -48,45 +48,47 @@ defmodule BambooSes.ContentRawTest do
     assert filenames == ["invoice.pdf", "song.mp3"]
   end
 
-  # TODO: enable when raw content is implemented
-  # test "delivers attachments" do
-  #   expected_request_fn = fn _, _, body, _, _ ->
-  #     email = EmailParser.parse(body)
+  test "passes content_id to attachment headers" do
+    path = Path.join(__DIR__, "../../../support/invoice.pdf")
 
-  #     filenames =
-  #       email
-  #       |> EmailParser.attachments()
-  #       |> Enum.map(&elem(&1, 0))
-  #       |> Enum.sort()
+    content =
+      TestHelpers.new_email()
+      |> Email.put_attachment(path, content_id: "invoice-pdf-1")
+      |> Content.build_from_bamboo_email()
 
-  #     assert filenames == ["invoice.pdf", "song.mp3"]
-  #     {:ok, %{status_code: 200}}
-  #   end
+    %Content{
+      Raw: %{
+        Data: raw_data
+      }
+    } = content
 
-  #   expect(HttpMock, :request, expected_request_fn)
+    content = EmailParser.parse(raw_data)
+    assert [attachment] = content |> EmailParser.attachments() |> Map.values()
+    assert header = Enum.find(attachment.headers, &(&1.key == "content-id"))
+    assert header.value == "invoice-pdf-1"
+  end
 
-  #   TestHelpers.new_email()
-  #   |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
-  #   |> Email.put_attachment(Path.join(__DIR__, "../../../support/song.mp3"))
-  #   |> SesAdapter.deliver(%{})
-  # end
+  test "delivers successfully with long subject" do
+    content =
+      TestHelpers.new_email(
+        "alice@example.com",
+        "This is a long subject with an emoji 🙂 bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla"
+      )
+      |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
+      |> Content.build_from_bamboo_email()
 
-  # TODO: enable when raw content is implemented
-  # test "passes content_id to attachment headers" do
-  #   expected_request_fn = fn _, _, body, _, _ ->
-  #     email = EmailParser.parse(body)
-  #     assert [attachment] = email |> EmailParser.attachments() |> Map.values()
-  #     assert header = Enum.find(attachment.headers, &(&1.key == "content-id"))
-  #     assert header.value == "invoice-pdf-1"
+    %Content{
+      Raw: %{
+        Data: raw_data
+      }
+    } = content
 
-  #     {:ok, %{status_code: 200}}
-  #   end
+    subject =
+      raw_data
+      |> EmailParser.parse()
+      |> EmailParser.subject()
 
-  #   expect(HttpMock, :request, expected_request_fn)
-  #   path = Path.join(__DIR__, "../../../support/invoice.pdf")
-
-  #   TestHelpers.new_email()
-  #   |> Email.put_attachment(path, content_id: "invoice-pdf-1")
-  #   |> SesAdapter.deliver(%{})
-  # end
+    assert subject ==
+             "=?utf-8?B?#{Base.encode64("This is a long subject with an emoji 🙂 bla")}?= =?utf-8?B?#{Base.encode64(" bla bla bla bla bla bla bla bla bla bla bla ")}?= =?utf-8?B?#{Base.encode64("bla bla bla bla")}?="
+  end
 end
