@@ -57,31 +57,6 @@ defmodule Bamboo.SesAdapterTest do
     SesAdapter.deliver(TestHelpers.new_email(), %{})
   end
 
-  # TODO: enable when raw content is implemented
-  # test "delivers successfully with long subject" do
-  #   expected_request_fn = fn _, _, body, _, _ ->
-  #     email = EmailParser.parse(body)
-  #     subject_header = Enum.find(email.headers, &(&1.key == "subject"))
-
-  #     assert subject_header.value ==
-  #              "=?utf-8?B?#{Base.encode64("This is a long subject with an emoji 🙂 bla")}?= =?utf-8?B?#{
-  #                Base.encode64(" bla bla bla bla bla bla bla bla bla bla bla ")
-  #              }?= =?utf-8?B?#{Base.encode64("bla bla bla bla")}?="
-
-  #     {:ok, %{status_code: 200}}
-  #   end
-
-  #   expect(HttpMock, :request, expected_request_fn)
-
-  #   SesAdapter.deliver(
-  #     TestHelpers.new_email(
-  #       "alice@example.com",
-  #       "This is a long subject with an emoji 🙂 bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla"
-  #     ),
-  #     %{}
-  #   )
-  # end
-
   test "delivers successfully email without body" do
     expected_request_fn = fn _, _, body, _, _ ->
       {:ok, message} = Jason.decode(body)
@@ -105,62 +80,6 @@ defmodule Bamboo.SesAdapterTest do
     |> Mailer.normalize_addresses()
     |> SesAdapter.deliver(%{})
   end
-
-  # TODO: maybe move to QA testing or just delete
-  # test "delivers mails with dashes in top level domain successfully" do
-  #   expected_request_fn = fn _, _, body, _, _ ->
-  #     email = EmailParser.parse(body)
-  #     assert EmailParser.to(email) == ["jim@my-example-host.com"]
-
-  #     {:ok, %{status_code: 200}}
-  #   end
-
-  #   expect(HttpMock, :request, expected_request_fn)
-
-  #   SesAdapter.deliver(TestHelpers.new_email("jim@my-example-host.com"), %{})
-  # end
-
-  # TODO: enable when raw content is implemented
-  # test "delivers attachments" do
-  #   expected_request_fn = fn _, _, body, _, _ ->
-  #     email = EmailParser.parse(body)
-
-  #     filenames =
-  #       email
-  #       |> EmailParser.attachments()
-  #       |> Enum.map(&elem(&1, 0))
-  #       |> Enum.sort()
-
-  #     assert filenames == ["invoice.pdf", "song.mp3"]
-  #     {:ok, %{status_code: 200}}
-  #   end
-
-  #   expect(HttpMock, :request, expected_request_fn)
-
-  #   TestHelpers.new_email()
-  #   |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
-  #   |> Email.put_attachment(Path.join(__DIR__, "../../../support/song.mp3"))
-  #   |> SesAdapter.deliver(%{})
-  # end
-
-  # TODO: enable when raw content is implemented
-  # test "passes content_id to attachment headers" do
-  #   expected_request_fn = fn _, _, body, _, _ ->
-  #     email = EmailParser.parse(body)
-  #     assert [attachment] = email |> EmailParser.attachments() |> Map.values()
-  #     assert header = Enum.find(attachment.headers, &(&1.key == "content-id"))
-  #     assert header.value == "invoice-pdf-1"
-
-  #     {:ok, %{status_code: 200}}
-  #   end
-
-  #   expect(HttpMock, :request, expected_request_fn)
-  #   path = Path.join(__DIR__, "../../../support/invoice.pdf")
-
-  #   TestHelpers.new_email()
-  #   |> Email.put_attachment(path, content_id: "invoice-pdf-1")
-  #   |> SesAdapter.deliver(%{})
-  # end
 
   test "sets the configuration set" do
     expected_configuration_set_name = "some-configuration-set"
