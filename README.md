@@ -45,10 +45,12 @@ config :my_app, MyApp.Mailer,
 ## Usage
 
 ```elixir
-email = TestBambooSes.welcome_email()
-email = Bamboo.SesAdapter.set_configuration_set(email, "configuration_set_name")
-TestBambooSes.Mailer.deliver_now(email)
+email
+|> Bamboo.SesAdapter.set_configuration_set("my-configuration-name")
+|> TestBambooSes.Mailer.deliver_now()
 ```
+
+See all available methods on https://hexdocs.pm/bamboo_ses/Bamboo.SesAdapter.html
 
 ## Copyright and License
 
