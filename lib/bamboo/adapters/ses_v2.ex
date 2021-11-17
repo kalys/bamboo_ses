@@ -1,7 +1,5 @@
 defmodule Bamboo.SesAdapter.SESv2 do
-  @moduledoc """
-  API consumer of AWS SES API v2.
-  """
+  @moduledoc false
 
   @doc false
   def send_email(message) do

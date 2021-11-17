@@ -49,30 +49,50 @@ defmodule Bamboo.SesAdapter do
 
   @doc """
   Set the SES configuration set name.
+
+  ## Example
+      email
+      |> Bamboo.SesAdapter.set_configuration_set("my-configuration-set")
   """
   def set_configuration_set(mail, configuration_set_name),
     do: Bamboo.Email.put_private(mail, :configuration_set_name, configuration_set_name)
 
   @doc """
   Set the SES FromEmailAddressIdentityArn.
+
+  ## Example
+      email
+      |> Bamboo.SesAdapter.set_from_arn("SOME ARN")
   """
   def set_from_arn(mail, from_arn),
     do: Bamboo.Email.put_private(mail, :from_arn, from_arn)
 
   @doc """
   Set the SES feedback forwarding address
+
+  ## Example
+      email
+      |> Bamboo.SesAdapter.set_feedback_forwarding_address("FEEDBACK FORWARDING ADDRESS")
   """
   def set_feedback_forwarding_address(mail, address),
     do: Bamboo.Email.put_private(mail, :feedback_forwarding_address, address)
 
   @doc """
   Set the SES feedback forwarding address arn
+
+  ## Example
+      email
+      |> Bamboo.SesAdapter.set_feedback_forwarding_address_arn("FEEDBACK FORWARDING ADDRESS ARN")
   """
   def set_feedback_forwarding_address_arn(mail, arn),
     do: Bamboo.Email.put_private(mail, :feedback_forwarding_address_arn, arn)
 
   @doc """
   Set the SES list management options
+
+  ## Example
+      email
+      |> Bamboo.SesAdapter.set_list_management_options("a contact list name", "a topic name")
   """
   def set_list_management_options(mail, contact_list_name, topic_name) do
     mail
@@ -82,6 +102,20 @@ defmodule Bamboo.SesAdapter do
 
   @doc """
   Set email tags
+
+  ## Example
+      email_tags = [
+        %{
+          "Name" => "color",
+          "Value" => "red"
+        },
+        %{
+          "Name" => "temp",
+          "Value" => "cold"
+        }
+      ]
+      email
+      |> Bamboo.SesAdapter.set_email_tags(email_tags)
   """
   def set_email_tags(mail, email_tags) do
     Bamboo.Email.put_private(mail, :email_tags, email_tags)
@@ -89,8 +123,18 @@ defmodule Bamboo.SesAdapter do
 
   @doc """
   Set the SES template params: name, data, ARN
+
+  ## Example
+      template_data = Jason.encode!(%{subject: "My subject", html: "<b>Bold text</b>", text: "Text"})
+
+      email
+      |> Bamboo.SesAdapter.set_template_params("my-template", template_data)
+
+      # or with template ARN
+      email
+      |> Bamboo.SesAdapter.set_template_params("my-template", template_data, "TEMPLATE ARN")
   """
-  def set_template_params(mail, template_name, template_data, template_arn) do
+  def set_template_params(mail, template_name, template_data, template_arn \\ nil) do
     mail
     |> Bamboo.Email.put_private(:template_name, template_name)
     |> Bamboo.Email.put_private(:template_data, template_data)
