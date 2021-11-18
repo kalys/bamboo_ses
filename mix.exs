@@ -25,10 +25,10 @@ defmodule BambooSes.MixProject do
 
   defp deps do
     [
+      {:idna, "~>6.1.1"},
       {:ex_aws_ses, "~> 2.3.0"},
       {:bamboo, "~> 2.0"},
       {:mail, "~> 0.2.0"},
-      {:jason, "~> 1.1"},
       {:mox, "~> 1.0", only: :test},
       {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
