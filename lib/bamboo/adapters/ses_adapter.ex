@@ -28,9 +28,7 @@ defmodule Bamboo.SesAdapter do
     opts = for {opt, value} when value != nil <- opts,
       do: {opt, value}
 
-    template = email.private[:template]
-    template_data = email.private[:template_data]
-    send_email(email, opts, template, template_data)
+    send_email(email, opts)
     |> ExAws.request(ex_aws_config)
     |> case do
       {:ok, response} -> {:ok, response}
@@ -38,7 +36,7 @@ defmodule Bamboo.SesAdapter do
     end
   end
 
-  defp send_email(email, opts, nil, nil) do
+  defp send_email(email, opts) do
     Mail.build_multipart()
     |> Mail.put_from(prepare_address(email.from))
     |> Mail.put_to(prepare_addresses(email.to))
@@ -51,16 +49,6 @@ defmodule Bamboo.SesAdapter do
     |> put_attachments(email.attachments)
     |> Mail.render(RFC2822Renderer)
     |> SES.send_raw_email(opts)
-  end
-
-  defp send_email(email, opts, template, data) do
-    to = %{
-      to: prepare_addresses(email.to),
-      cc: prepare_addresses(email.cc),
-      bcc: prepare_addresses(email.bcc)
-    }
-    from = prepare_address(email.from)
-    SES.send_templated_email(to, from, template, data, opts)
   end
 
   defp put_headers(message, headers) when is_map(headers),
