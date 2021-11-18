@@ -160,6 +160,29 @@ defmodule Bamboo.SesAdapterTest do
     |> SesAdapter.deliver(%{})
   end
 
+  test "sets the tags" do
+    tag = %{key: "environment", value: "test"}
+    expected_template = "some-template-set"
+
+    expected_request_fn = fn _, _, body, _, _ ->
+      query = URI.decode_query(body)
+
+      # test that tag is present in request
+      key = Map.get(query, "Tags.member.1.Key")
+      value = Map.get(query, "Tags.member.1.Value")
+      assert key == tag.key
+      assert value == tag.value
+
+      {:ok, %{status_code: 200}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    new_email()
+    |> Bamboo.Email.put_private(:tags, [tag])
+    |> SesAdapter.deliver(%{})
+  end
+
   test "puts headers" do
     expected_request_fn = fn _, _, body, _, _ ->
       email = EmailParser.parse(body)
