@@ -2,7 +2,7 @@ defmodule BambooSes.Message.Content do
   @moduledoc false
 
   alias __MODULE__
-  alias BambooSes.Address
+  alias BambooSes.Encoding
 
   defstruct Simple: nil,
             Template: nil,
@@ -41,7 +41,7 @@ defmodule BambooSes.Message.Content do
   defp build_content(_template_params, subject, text, html, headers, attachments) do
     raw_data =
       Mail.build_multipart()
-      |> Mail.put_subject(Address.maybe_rfc1342_encode(subject))
+      |> Mail.put_subject(Encoding.maybe_rfc1342_encode(subject))
       |> put_raw_text(text)
       |> put_raw_html(html)
       |> put_headers(headers)
@@ -113,7 +113,7 @@ defmodule BambooSes.Message.Content do
   defp put_raw_text(message, nil), do: message
 
   defp put_raw_text(message, body) do
-    if Address.ascii?(body) do
+    if Encoding.ascii?(body) do
       Mail.put_text(message, body)
     else
       Mail.put_text(message, body, charset: "UTF-8")
@@ -123,7 +123,7 @@ defmodule BambooSes.Message.Content do
   defp put_raw_html(message, nil), do: message
 
   defp put_raw_html(message, body) do
-    if Address.ascii?(body) do
+    if Encoding.ascii?(body) do
       Mail.put_html(message, body)
     else
       Mail.put_html(message, body, charset: "UTF-8")

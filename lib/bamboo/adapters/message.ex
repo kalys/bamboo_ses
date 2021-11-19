@@ -3,7 +3,7 @@ defmodule BambooSes.Message do
 
   alias __MODULE__
   alias BambooSes.Message.{Destination, Content}
-  alias BambooSes.Address
+  alias BambooSes.Encoding
 
   defstruct FromEmailAddress: nil,
             FromEmailAddressIdentityArn: nil,
@@ -17,7 +17,7 @@ defmodule BambooSes.Message do
             EmailTags: nil
 
   def put_from(message, from) do
-    %Message{message | FromEmailAddress: Address.prepare(from)}
+    %Message{message | FromEmailAddress: Encoding.prepare_address(from)}
   end
 
   def put_from_arn(message, value) when is_binary(value),
@@ -47,12 +47,12 @@ defmodule BambooSes.Message do
     }
 
   def put_reply_to(message, addresses) when is_list(addresses),
-    do: %Message{message | ReplyToAddresses: Enum.map(addresses, &Address.prepare(&1))}
+    do: %Message{message | ReplyToAddresses: Enum.map(addresses, &Encoding.prepare_address(&1))}
 
   def put_reply_to(message, reply_to),
     do: %Message{
       message
-      | ReplyToAddresses: [Address.prepare(reply_to) | message."ReplyToAddresses"]
+      | ReplyToAddresses: [Encoding.prepare_address(reply_to) | message."ReplyToAddresses"]
     }
 
   def put_destination(message, to, cc, bcc) do
