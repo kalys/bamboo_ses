@@ -7,18 +7,27 @@ defmodule Bamboo.SesAdapter do
 
   @behaviour Bamboo.Adapter
 
-  alias Bamboo.SesAdapter.SESv2
   alias BambooSes.Message
   import Bamboo.ApiError
 
-  @doc false
+  @doc """
+  Implements Bamboo.Adapter callback
+  """
+  @impl Bamboo.Adapter
   def supports_attachments?, do: true
 
-  @doc false
+  @doc """
+  Implements Bamboo.Adapter callback
+  """
+  @impl Bamboo.Adapter
   def handle_config(config) do
     config
   end
 
+  @doc """
+  Implements Bamboo.Adapter callback
+  """
+  @impl Bamboo.Adapter
   def deliver(email, config) do
     ex_aws_config = Map.get(config, :ex_aws, [])
     configuration_set_name = email.private[:configuration_set_name]
@@ -40,7 +49,7 @@ defmodule Bamboo.SesAdapter do
          |> Message.put_email_tags(email.private[:email_tags])
          |> put_headers(email.headers)
          |> Message.put_content(email)
-         |> SESv2.send_email()
+         |> send_email()
          |> ExAws.request(ex_aws_config) do
       {:ok, response} -> {:ok, response}
       {:error, reason} -> {:error, build_api_error(inspect(reason))}
@@ -155,7 +164,7 @@ defmodule Bamboo.SesAdapter do
 
   defp put_headers(message, [{"Reply-To" = _key, value} | tail]) do
     message
-    |> Message.put_reply_to(value)
+    |> Message.put_reply_to({"", value})
     |> put_headers(tail)
   end
 
@@ -201,4 +210,16 @@ defmodule Bamboo.SesAdapter do
   #     Mail.put_html(message, body, charset: "UTF-8")
   #   end
   # end
+
+  defp send_email(message) do
+    %ExAws.Operation.JSON{
+      path: "/v2/email/outbound-emails",
+      http_method: :post,
+      service: :ses,
+      headers: [
+        {"content-type", "application/json"}
+      ],
+      data: message
+    }
+  end
 end

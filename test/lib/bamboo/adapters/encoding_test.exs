@@ -2,10 +2,6 @@ defmodule BambooSes.EncodingTest do
   use ExUnit.Case
   alias BambooSes.Encoding
 
-  test "accepts string" do
-    assert Encoding.prepare_address("bob@example.com") == "bob@example.com"
-  end
-
   test "accepts tuple with nil as friendly name" do
     assert Encoding.prepare_address({nil, "bob@example.com"}) == "bob@example.com"
   end

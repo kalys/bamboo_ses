@@ -1,13 +1,57 @@
 defmodule BambooSes.Message.Content do
-  @moduledoc false
+  @moduledoc """
+  Contains functions for composing email content.
+  Depending on email it can generate simple, raw or template content.
+  """
 
-  alias __MODULE__
   alias BambooSes.Encoding
+
+  @type t :: %__MODULE__{
+          Template:
+            %{
+              TemplateName: String.t() | nil,
+              TemplateData: String.t() | nil,
+              TemplateArn: String.t() | nil
+            }
+            | nil,
+          Simple:
+            %{
+              Subject: %{
+                Charset: String.t(),
+                Data: String.t() | nil
+              },
+              Body: %{
+                Text: %{
+                  Charset: String.t(),
+                  Data: String.t() | nil
+                },
+                Html: %{
+                  Charset: String.t(),
+                  Data: String.t() | nil
+                }
+              }
+            }
+            | nil,
+          Raw:
+            %{
+              Data: String.t()
+            }
+            | nil
+        }
 
   defstruct Simple: nil,
             Template: nil,
             Raw: nil
 
+  @doc """
+  Generates simple, raw or template content struct
+
+  ## Returns
+  If template params are given then a template content struct will be returned.
+  If email has no attachments and headers then a simple content struct will be returned.
+  If there is an attachment or a header (apart from Reply-To) then raw content struct will be returned.
+  """
+  @spec build_from_bamboo_email(Bamboo.Email.t()) :: __MODULE__.t()
   def build_from_bamboo_email(email) do
     template_params =
       fetch_template_params(
@@ -33,7 +77,7 @@ defmodule BambooSes.Message.Content do
 
   defp build_content(template_params, _subject, _text, _html, _headers, _attachments)
        when is_map(template_params),
-       do: %Content{Template: template_params}
+       do: %__MODULE__{Template: template_params}
 
   defp build_content(_template_params, subject, text, html, [], []),
     do: build_simple_content(subject, text, html)
@@ -49,7 +93,7 @@ defmodule BambooSes.Message.Content do
       |> Mail.render(Mail.Renderers.RFC2822)
       |> Base.encode64()
 
-    %Content{
+    %__MODULE__{
       Raw: %{
         Data: raw_data
       }
@@ -57,7 +101,7 @@ defmodule BambooSes.Message.Content do
   end
 
   defp build_simple_content(subject, text, html) do
-    %Content{
+    %__MODULE__{
       Simple: %{
         Subject: %{
           Charset: "UTF-8",
