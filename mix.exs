@@ -13,7 +13,10 @@ defmodule BambooSes.MixProject do
       docs: docs(),
       package: package(),
       start_permanent: Mix.env() == :prod,
-      elixirc_paths: elixirc_paths(Mix.env())
+      elixirc_paths: elixirc_paths(Mix.env()),
+      dialyzer: [
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
+      ]
     ]
   end
 

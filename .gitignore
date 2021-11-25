@@ -27,3 +27,7 @@ bamboo_ses-*.tar
 
 # Misc.
 .env
+
+# Dialyzer
+/priv/plts/*.plt
+/priv/plts/*.plt.hash
