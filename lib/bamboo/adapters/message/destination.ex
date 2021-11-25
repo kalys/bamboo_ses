@@ -1,43 +1,80 @@
 defmodule BambooSes.Message.Destination do
-  @moduledoc false
+  @moduledoc """
+  Contains functions for composing destination information
+  """
 
-  alias __MODULE__
   alias BambooSes.Encoding
+
+  @type recipients :: [Bamboo.Email.address()]
+
+  @type t :: %__MODULE__{
+          ToAddresses: recipients,
+          CcAddresses: recipients,
+          BccAddresses: recipients
+        }
 
   defstruct ToAddresses: [],
             CcAddresses: [],
             BccAddresses: []
 
+  @doc """
+  Adds single recipient or list of recipients to the "To" field of the destination struct
+
+  ## Example
+
+      put_to(destination, [{"John Doe", "john.doe@example.com"}, {"Jane Doe", "jane.doe@example.com"}]
+      put_to(destination, {"John Doe", "john.doe@example.com"})
+  """
+  @spec put_to(__MODULE__.t(), [Bamboo.Email.address()]) :: __MODULE__.t()
   def put_to(destination, recipients) when is_list(recipients),
-    do: %Destination{
+    do: %__MODULE__{
       destination
       | ToAddresses: Enum.map(recipients, &Encoding.prepare_address(&1))
     }
 
+  @spec put_to(__MODULE__.t(), Bamboo.Email.address()) :: __MODULE__.t()
   def put_to(destination, {_k, _v} = recipient),
-    do: %Destination{destination | ToAddresses: [Encoding.prepare_address(recipient)]}
+    do: %__MODULE__{destination | ToAddresses: [Encoding.prepare_address(recipient)]}
 
   def put_to(destination, _recipients), do: destination
 
+  @doc """
+  Adds single recipient or list of recipients to the "Cc" field of the destination struct
+
+  ## Example
+
+      put_cc(destination, [{"John Doe", "john.doe@example.com"}, {"Jane Doe", "jane.doe@example.com"}]
+      put_cc(destination, {"John Doe", "john.doe@example.com"})
+  """
+  @spec put_cc(__MODULE__.t(), [Bamboo.Email.address()]) :: __MODULE__.t()
   def put_cc(destination, recipients) when is_list(recipients),
-    do: %Destination{
+    do: %__MODULE__{
       destination
       | CcAddresses: Enum.map(recipients, &Encoding.prepare_address(&1))
     }
 
+  @spec put_cc(__MODULE__.t(), Bamboo.Email.address()) :: __MODULE__.t()
   def put_cc(destination, {_k, _v} = recipient),
-    do: %Destination{destination | CcAddresses: [Encoding.prepare_address(recipient)]}
+    do: %__MODULE__{destination | CcAddresses: [Encoding.prepare_address(recipient)]}
 
   def put_cc(destination, _recipients), do: destination
 
+  @doc """
+  Adds single recipient or list of recipients to the "Bcc" field of the destination struct
+
+  ## Example
+
+      put_bcc(destination, [{"John Doe", "john.doe@example.com"}, {"Jane Doe", "jane.doe@example.com"}]
+      put_bcc(destination, {"John Doe", "john.doe@example.com"})
+  """
   def put_bcc(destination, recipients) when is_list(recipients),
-    do: %Destination{
+    do: %__MODULE__{
       destination
       | BccAddresses: Enum.map(recipients, &Encoding.prepare_address(&1))
     }
 
   def put_bcc(destination, {_k, _v} = recipient),
-    do: %Destination{destination | BccAddresses: [Encoding.prepare_address(recipient)]}
+    do: %__MODULE__{destination | BccAddresses: [Encoding.prepare_address(recipient)]}
 
   def put_bcc(destination, _recipients), do: destination
 end

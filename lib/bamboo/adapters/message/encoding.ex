@@ -5,22 +5,16 @@ defmodule BambooSes.Encoding do
 
   @rfc1342_maximum_encoded_word_length 75
 
-  @type address ::
-          String.t()
-          | {nil, String.t()}
-          | {String.t(), String.t()}
-
   @doc """
   Encodes an email address.
 
+  Returns encoded email address.
+
   ## Example
-      prepare_address("john.doe@example.com")
-      prepare_address({nil, "john.doe@example.com"})
       prepare_address({"", "john.doe@example.com"})
       prepare_address({"John Doe", "john.doe@example.com"})
   """
-  @spec prepare_address(address()) :: String.t()
-  def prepare_address(address) when is_binary(address), do: address
+  @spec prepare_address(Bamboo.Email.address()) :: String.t()
   def prepare_address({nil, address}), do: encode_address(address)
   def prepare_address({"", address}), do: encode_address(address)
 
@@ -30,8 +24,10 @@ defmodule BambooSes.Encoding do
 
   @doc """
   Encodes string to rfc1342 if needed
+
+  Returns encoded string
   """
-  @spec maybe_rfc1342_encode(String.t() | any()) :: String.t()
+  @spec maybe_rfc1342_encode(String.t()) :: String.t()
   def maybe_rfc1342_encode(string) when is_binary(string) do
     should_encode? = !ascii?(string) || String.contains?(string, ["\"", "?"])
 
@@ -46,6 +42,8 @@ defmodule BambooSes.Encoding do
 
   @doc """
   Checks if string contains only ASCII characters
+
+  Returns boolean value
   """
   @spec ascii?(String.t()) :: boolean()
   def ascii?(string) do

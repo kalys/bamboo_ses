@@ -3,25 +3,17 @@ defmodule BambooSes.MessageTest do
   alias BambooSes.Message
 
   test "puts from field" do
-    message = Message.put_from(%Message{}, "john@example.com")
+    message = Message.put_from(%Message{}, {nil, "john@example.com"})
     assert message."FromEmailAddress" == "john@example.com"
 
     message = Message.put_from(%Message{}, {"John", "john@example.com"})
     assert message."FromEmailAddress" == ~s("John" <john@example.com>)
   end
 
-  test "puts list of reply to addresses" do
-    message =
-      %Message{}
-      |> Message.put_reply_to(["john@example.com", {"Jane", "jane@example.com"}])
-
-    assert message."ReplyToAddresses" == ["john@example.com", ~s("Jane" <jane@example.com>)]
-  end
-
   test "puts reply to" do
     message =
       %Message{}
-      |> Message.put_reply_to("john@example.com")
+      |> Message.put_reply_to({nil, "john@example.com"})
       |> Message.put_reply_to({"Jane", "jane@example.com"})
 
     assert message."ReplyToAddresses" == [~s("Jane" <jane@example.com>), "john@example.com"]
