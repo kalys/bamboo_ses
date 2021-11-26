@@ -29,7 +29,7 @@ defmodule BambooSes.Encoding do
   """
   @spec maybe_rfc1342_encode(String.t()) :: String.t()
   def maybe_rfc1342_encode(string) when is_binary(string) do
-    should_encode? = !ascii?(string) || String.contains?(string, ["\"", "?"])
+    should_encode? = not ascii?(string) || String.contains?(string, ["\"", "?"])
 
     if should_encode? do
       rfc1342_encode(string)
@@ -47,8 +47,9 @@ defmodule BambooSes.Encoding do
   """
   @spec ascii?(String.t()) :: boolean()
   def ascii?(string) do
-    non_ascii_chars = Enum.uniq(String.codepoints(string)) -- Enum.map(0..127, fn x -> <<x>> end)
-    Enum.empty?(non_ascii_chars)
+    string
+    |> String.to_charlist()
+    |> Enum.all?(&(&1 < 127))
   end
 
   defp encode_address(address) do
