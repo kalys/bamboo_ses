@@ -33,24 +33,25 @@ defmodule Bamboo.SesAdapter do
     configuration_set_name = email.private[:configuration_set_name]
     from_arn = email.private[:from_arn]
 
-    case %Message{}
-         |> Message.put_from(email.from)
-         |> Message.put_from_arn(from_arn)
-         |> Message.put_destination(email.to, email.cc, email.bcc)
-         |> Message.put_configuration_set_name(configuration_set_name)
-         |> Message.put_feedback_forwarding_address(email.private[:feedback_forwarding_address])
-         |> Message.put_feedback_forwarding_address_arn(
-           email.private[:feedback_forwarding_address_arn]
-         )
-         |> Message.put_list_management_options(
-           email.private[:contact_list_name],
-           email.private[:topic_name]
-         )
-         |> Message.put_email_tags(email.private[:email_tags])
-         |> put_headers(email.headers)
-         |> Message.put_content(email)
-         |> send_email()
-         |> ExAws.request(ex_aws_config) do
+    %Message{}
+    |> Message.put_from(email.from)
+    |> Message.put_from_arn(from_arn)
+    |> Message.put_destination(email.to, email.cc, email.bcc)
+    |> Message.put_configuration_set_name(configuration_set_name)
+    |> Message.put_feedback_forwarding_address(email.private[:feedback_forwarding_address])
+    |> Message.put_feedback_forwarding_address_arn(
+      email.private[:feedback_forwarding_address_arn]
+    )
+    |> Message.put_list_management_options(
+      email.private[:contact_list_name],
+      email.private[:topic_name]
+    )
+    |> Message.put_email_tags(email.private[:email_tags])
+    |> put_headers(email.headers)
+    |> Message.put_content(email)
+    |> send_email()
+    |> ExAws.request(ex_aws_config)
+    |> case do
       {:ok, response} -> {:ok, response}
       {:error, reason} -> {:error, build_api_error(inspect(reason))}
     end
