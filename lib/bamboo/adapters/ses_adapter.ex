@@ -171,47 +171,6 @@ defmodule Bamboo.SesAdapter do
 
   defp put_headers(message, [{_key, _value} | _tail]), do: message
 
-  # defp put_attachments(message, []), do: message
-
-  # defp put_attachments(message, attachments) do
-  #   Enum.reduce(
-  #     attachments,
-  #     message,
-  #     fn attachment, message ->
-  #       headers =
-  #         if attachment.content_id do
-  #           [content_id: attachment.content_id]
-  #         else
-  #           []
-  #         end
-
-  #       opts = [headers: headers]
-
-  #       Mail.put_attachment(message, {attachment.filename, attachment.data}, opts)
-  #     end
-  #   )
-  # end
-
-  # defp put_text(message, nil), do: message
-
-  # defp put_text(message, body) do
-  #   if ascii?(body) do
-  #     Mail.put_text(message, body)
-  #   else
-  #     Mail.put_text(message, body, charset: "UTF-8")
-  #   end
-  # end
-
-  # defp put_html(message, nil), do: message
-
-  # defp put_html(message, body) do
-  #   if ascii?(body) do
-  #     Mail.put_html(message, body)
-  #   else
-  #     Mail.put_html(message, body, charset: "UTF-8")
-  #   end
-  # end
-
   defp send_email(message) do
     %ExAws.Operation.JSON{
       path: "/v2/email/outbound-emails",
