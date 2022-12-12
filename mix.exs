@@ -28,7 +28,7 @@ defmodule BambooSes.MixProject do
 
   defp deps do
     [
-      {:ex_aws, "~> 2.2.7"},
+      {:ex_aws, "~> 2.4.1"},
       {:bamboo, "~> 2.0"},
       {:mail, "~> 0.2.0"},
       {:jason, "~> 1.1"},
