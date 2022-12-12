@@ -17,7 +17,7 @@ The package can be installed by adding `:bamboo_ses` to your list of dependencie
 ```elixir
 def deps do
   [
-    {:bamboo_ses, "~> 0.2.0"}
+    {:bamboo_ses, "~> 0.3.0"}
   ]
 end
 ```
