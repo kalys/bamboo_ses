@@ -69,11 +69,11 @@ defmodule BambooSes.ContentRawTest do
   end
 
   test "delivers successfully with long subject" do
+    subject =
+      "This is a long subject with an emoji 🙂 bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla"
+
     content =
-      TestHelpers.new_email(
-        "alice@example.com",
-        "This is a long subject with an emoji 🙂 bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla"
-      )
+      TestHelpers.new_email("alice@example.com", subject)
       |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
       |> Content.build_from_bamboo_email()
 
@@ -83,12 +83,11 @@ defmodule BambooSes.ContentRawTest do
       }
     } = content
 
-    subject =
+    parsed_subject =
       raw_data
       |> EmailParser.parse()
       |> EmailParser.subject()
 
-    assert subject ==
-             "=?utf-8?B?#{Base.encode64("This is a long subject with an emoji 🙂 bla")}?= =?utf-8?B?#{Base.encode64(" bla bla bla bla bla bla bla bla bla bla bla ")}?= =?utf-8?B?#{Base.encode64("bla bla bla bla")}?="
+    assert parsed_subject == subject
   end
 end
