@@ -85,7 +85,7 @@ defmodule BambooSes.Message.Content do
   defp build_content(_template_params, subject, text, html, headers, attachments) do
     raw_data =
       Mail.build_multipart()
-      |> Mail.put_subject(Encoding.maybe_rfc1342_encode(subject))
+      |> Mail.put_subject(subject)
       |> put_raw_text(text)
       |> put_raw_html(html)
       |> put_headers(headers)
