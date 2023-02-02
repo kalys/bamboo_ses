@@ -52,6 +52,9 @@ email
 
 See all available methods on https://hexdocs.pm/bamboo_ses/Bamboo.SesAdapter.html
 
+<a href="https://www.buymeacoffee.com/kalys" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
+
 ## Copyright and License
 
 Copyright (c) 2018 Kalys Osmonov
