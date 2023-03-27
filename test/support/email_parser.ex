@@ -176,8 +176,14 @@ defmodule BambooSes.EmailParser do
   end
 
   defp parse_headers(email, [line | rest]) do
-    header = parse_header(line)
-    parse_headers(%{email | headers: [header | email.headers]}, rest)
+    [next_line | rest_after_next_line ] = rest
+
+    if String.match?(next_line, ~r/^[\w-]+:\s.*$/) or next_line == "" do
+      header = parse_header(line)
+      parse_headers(%{email | headers: [header | email.headers]}, rest)
+    else
+      parse_headers(email, [<<line::binary, "\r\n", next_line::binary>> | rest_after_next_line])
+    end
   end
 
   defp parse_header(raw_header) do
