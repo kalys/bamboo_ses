@@ -94,6 +94,7 @@ defmodule BambooSes.ContentRawTest do
 
   test "delivers successfully with non-ascii header" do
     custom_header = "𐰴𐰀𐰽𐱄𐰆𐰢"
+
     content =
       TestHelpers.new_email()
       |> Email.put_header("X-Custom-Header", custom_header)
@@ -108,6 +109,8 @@ defmodule BambooSes.ContentRawTest do
     parsed_content = EmailParser.parse(raw_data)
 
     assert header = EmailParser.header(parsed_content, "x-custom-header")
-    assert Mail.Encoders.QuotedPrintable.decode(header.value) == <<"=?UTF-8?Q?", custom_header::binary, "?=">>
+
+    assert Mail.Encoders.QuotedPrintable.decode(header.value) ==
+             <<"=?UTF-8?Q?", custom_header::binary, "?=">>
   end
 end
