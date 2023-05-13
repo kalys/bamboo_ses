@@ -54,7 +54,7 @@ defmodule BambooSes.Encoding do
 
   defp encode_address(address) do
     [local_part, domain_part] = String.split(address, "@")
-    Enum.join([Mail.Encoders.SevenBit.encode(local_part), :idna.utf8_to_ascii(domain_part)], "@")
+    Enum.join([:idna.utf8_to_ascii(local_part), :idna.utf8_to_ascii(domain_part)], "@")
   end
 
   defp rfc1342_encode(string) when is_binary(string), do: rfc1342_encode(string, [])

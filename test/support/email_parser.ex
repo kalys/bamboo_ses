@@ -3,20 +3,22 @@ defmodule BambooSes.EmailParser do
   Tool used to confirm emails generated in tests.
   """
 
-  alias BambooSes.{EmailPart, HeaderItem, ParsedEmail}
+  alias BambooSes.{HeaderItem}
 
   @doc """
   Parse SES email body to raw email binary.
   """
   def parse(ses_body) do
-    lines = ses_body |> Base.decode64!() |> String.split("\r\n")
-
-    parse_lines(%ParsedEmail{}, lines)
+    ses_body
+    |> Base.decode64!()
+    |> :mimemail.decode()
   end
 
   def subject(email) do
-    header = Enum.find(email.headers, &(&1.key == "subject"))
-    header && header.value
+    {_, _, headers, _, _} = email
+    {_, subject} = Enum.find(headers, fn {key, _} -> key == "Subject" end)
+
+    subject
   end
 
   def to(email) do
@@ -47,16 +49,26 @@ defmodule BambooSes.EmailParser do
     header && header.value
   end
 
-  def header(email, name) do
-    Enum.find(email.headers, &(&1.key == name))
+  def header({_, _, headers, _, _}, name) do
+    headers
+    |> Enum.find(fn {key, _} -> key == name end)
+    |> Tuple.to_list()
+    |> List.last()
   end
 
-  def attachments(email) do
-    email.parts
+  def attachments({_, _, _, _, parts}) do
+    parts
     |> Enum.map(fn part ->
-      header = Enum.find(part.headers, &(&1.key == "content-disposition"))
+      {_, _, headers, _, _} = part
 
-      if header do
+      header_tuple =
+        Enum.find(headers, fn {key, value} ->
+          key == "Content-Disposition" && String.starts_with?(value, "attachment")
+        end)
+
+      if header_tuple do
+        {key, value} = header_tuple
+        header = parse_header("#{key}: #{value}")
         filename = header.attrs["filename"]
         {filename, part}
       else
@@ -67,124 +79,18 @@ defmodule BambooSes.EmailParser do
     |> Map.new()
   end
 
-  def html(email), do: body(email, :html)
-  def text(email), do: body(email, :text)
+  def html(email), do: body(email, "html")
+  def text(email), do: body(email, "plain")
 
   def body(email, desired_type) do
-    desired_content_type =
-      case desired_type do
-        :text -> "text/plain"
-        :html -> "text/html"
-      end
-
-    email.parts
-    |> Enum.map(fn part ->
-      ct_header = Enum.find(part.headers, &(&1.key == "content-type"))
-      cd_header = Enum.find(part.headers, &(&1.key == "content-disposition"))
-
-      if ct_header && ct_header.value == desired_content_type && !cd_header do
-        part
-      else
-        nil
-      end
-    end)
-    |> Enum.find(& &1)
+    email
+    |> body_parts()
+    |> Enum.find(fn {_, subtype, _, _, _} -> subtype == desired_type end)
+    |> body_parts()
   end
 
   ## Private functions
-
-  defp parse_lines(email, []), do: email
-
-  defp parse_lines(%{current: :headers} = email, lines) do
-    parse_headers(email, lines)
-  end
-
-  defp parse_lines(%{current: :body} = email, [line | rest]) do
-    email = %{email | body_lines: [line | email.body_lines]}
-    parse_lines(email, rest)
-  end
-
-  defp parse_lines(%{current: :parts} = email, lines) do
-    part = %EmailPart{}
-    email = %{email | parts: [part | email.parts]}
-    email = parse_part_lines(email, lines)
-    update_in(email.parts, &Enum.reverse/1)
-  end
-
-  defp parse_part_lines(email, []) do
-    email
-  end
-
-  defp parse_part_lines(%{parts: [%{current: :boundary} = part | parts]} = email, [line | rest]) do
-    if line == "--" <> email.boundary do
-      email = %{email | parts: [%{part | current: :headers} | parts]}
-      parse_part_lines(email, rest)
-    else
-      %{email | error: "Expected part boundary. Got: #{inspect(line)}"}
-    end
-  end
-
-  defp parse_part_lines(%{parts: [%{current: :headers} = part | parts]} = email, ["" | rest]) do
-    part = %{part | current: :body}
-    email = %{email | parts: [part | parts]}
-    parse_part_lines(email, rest)
-  end
-
-  defp parse_part_lines(%{parts: [%{current: :headers} = part | parts]} = email, [line | rest]) do
-    header = parse_header(line)
-    part = %{part | headers: [header | part.headers]}
-    email = %{email | parts: [part | parts]}
-    parse_part_lines(email, rest)
-  end
-
-  defp parse_part_lines(
-         %{parts: [%{current: :body} = part | parts]} = email,
-         [line | rest] = lines
-       ) do
-    cond do
-      line == "--" <> email.boundary <> "--" ->
-        part = %{part | lines: Enum.reverse(part.lines)}
-        %{email | parts: [part | parts] |> Enum.reverse()}
-
-      line == "--" <> email.boundary ->
-        part = %{part | lines: Enum.reverse(part.lines)}
-        email = %{email | parts: [part | parts]}
-        parse_lines(email, lines)
-
-      true ->
-        part = %{part | lines: [line | part.lines]}
-        email = %{email | parts: [part | parts]}
-        parse_part_lines(email, rest)
-    end
-  end
-
-  defp parse_headers(email, ["" | rest]) do
-    content_type_header = Enum.find(email.headers, &(&1.key == "content-type"))
-
-    email =
-      case content_type_header do
-        %{value: "multipart/" <> _, attrs: %{"boundary" => boundary}} ->
-          %{email | current: :parts, multipart?: true, boundary: boundary}
-
-        _ ->
-          %{email | current: :body}
-      end
-
-    email = update_in(email.headers, &Enum.reverse/1)
-
-    parse_lines(email, rest)
-  end
-
-  defp parse_headers(email, [line | rest]) do
-    [next_line | rest_after_next_line] = rest
-
-    if String.match?(next_line, ~r/^[\w-]+:\s.*$/) or next_line == "" do
-      header = parse_header(line)
-      parse_headers(%{email | headers: [header | email.headers]}, rest)
-    else
-      parse_headers(email, [<<line::binary, "\r\n", next_line::binary>> | rest_after_next_line])
-    end
-  end
+  defp body_parts({_, _, _, _, parts}), do: parts
 
   defp parse_header(raw_header) do
     header = %HeaderItem{raw: raw_header}
