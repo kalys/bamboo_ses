@@ -18,11 +18,14 @@ defmodule BambooSes.ContentRawTest do
 
     parsed_content = EmailParser.parse(raw_data)
 
+    raw_data
+    |> EmailParser.parse()
+
     assert EmailParser.subject(parsed_content) == "Welcome to the app."
-    assert EmailParser.text(parsed_content).lines == ["Thanks for joining!", ""]
-    assert EmailParser.html(parsed_content).lines == ["<strong>Thanks for joining!</strong>"]
-    assert header = EmailParser.header(parsed_content, "x-custom-header")
-    assert header.raw == "X-Custom-Header: custom-header-value"
+    assert EmailParser.text(parsed_content) == "Thanks for joining!"
+    assert EmailParser.html(parsed_content) == "<strong>Thanks for joining!</strong>"
+    assert header = EmailParser.header(parsed_content, "X-Custom-Header")
+    assert header == "custom-header-value"
   end
 
   test "generates raw content when there are attachments" do
@@ -64,8 +67,9 @@ defmodule BambooSes.ContentRawTest do
 
     content = EmailParser.parse(raw_data)
     assert [attachment] = content |> EmailParser.attachments() |> Map.values()
-    assert header = Enum.find(attachment.headers, &(&1.key == "content-id"))
-    assert header.value == "invoice-pdf-1"
+    {_, _, headers, _, _} = attachment
+    assert {_, header_value} = Enum.find(headers, fn {key, _} -> key == "Content-ID" end)
+    assert header_value == "invoice-pdf-1"
   end
 
   test "delivers successfully with long subject" do
@@ -87,9 +91,8 @@ defmodule BambooSes.ContentRawTest do
       raw_data
       |> EmailParser.parse()
       |> EmailParser.subject()
-      |> Mail.Encoders.QuotedPrintable.decode()
 
-    assert parsed_subject == <<"=?UTF-8?Q?", subject::binary, "?=">>
+    assert parsed_subject == subject
   end
 
   test "delivers successfully with non-ascii header" do
@@ -108,9 +111,10 @@ defmodule BambooSes.ContentRawTest do
 
     parsed_content = EmailParser.parse(raw_data)
 
-    assert header = EmailParser.header(parsed_content, "x-custom-header")
+    raw_data
+    |> EmailParser.parse()
 
-    assert Mail.Encoders.QuotedPrintable.decode(header.value) ==
-             <<"=?UTF-8?Q?", custom_header::binary, "?=">>
+    assert header = EmailParser.header(parsed_content, "X-Custom-Header")
+    assert header == custom_header
   end
 end

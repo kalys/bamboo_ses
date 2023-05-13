@@ -4,8 +4,6 @@ defmodule BambooSes.Message.Content do
   Depending on email it can generate simple, raw or template content.
   """
 
-  alias BambooSes.Encoding
-
   @type t :: %__MODULE__{
           Template:
             %{
@@ -66,6 +64,7 @@ defmodule BambooSes.Message.Content do
       |> prepare_headers
 
     build_content(
+      email,
       template_params,
       email.subject,
       email.text_body,
@@ -75,22 +74,17 @@ defmodule BambooSes.Message.Content do
     )
   end
 
-  defp build_content(template_params, _subject, _text, _html, _headers, _attachments)
+  defp build_content(_email, template_params, _subject, _text, _html, _headers, _attachments)
        when is_map(template_params),
        do: %__MODULE__{Template: template_params}
 
-  defp build_content(_template_params, subject, text, html, [], []),
+  defp build_content(_email, _template_params, subject, text, html, [], []),
     do: build_simple_content(subject, text, html)
 
-  defp build_content(_template_params, subject, text, html, headers, attachments) do
+  defp build_content(email, _template_params, _subject, _text, _html, _headers, _attachments) do
     raw_data =
-      Mail.build_multipart()
-      |> Mail.put_subject(subject)
-      |> put_raw_text(text)
-      |> put_raw_html(html)
-      |> put_headers(headers)
-      |> put_attachments(attachments)
-      |> Mail.render(Mail.Renderers.RFC2822)
+      email
+      |> BambooSes.Render.Raw.render()
       |> Base.encode64()
 
     %__MODULE__{
@@ -153,53 +147,4 @@ defmodule BambooSes.Message.Content do
   defp prepare_headers([]), do: []
   defp prepare_headers([{"Reply-To", _value} | tail]), do: tail
   defp prepare_headers(headers), do: headers
-
-  defp put_raw_text(message, nil), do: message
-
-  defp put_raw_text(message, body) do
-    if Encoding.ascii?(body) do
-      Mail.put_text(message, body)
-    else
-      Mail.put_text(message, body, charset: "UTF-8")
-    end
-  end
-
-  defp put_raw_html(message, nil), do: message
-
-  defp put_raw_html(message, body) do
-    if Encoding.ascii?(body) do
-      Mail.put_html(message, body)
-    else
-      Mail.put_html(message, body, charset: "UTF-8")
-    end
-  end
-
-  defp put_headers(message, []), do: message
-
-  defp put_headers(message, [{key, value} | tail]) do
-    message
-    |> Mail.Message.put_header(key, value)
-    |> put_headers(tail)
-  end
-
-  defp put_attachments(message, []), do: message
-
-  defp put_attachments(message, attachments) do
-    Enum.reduce(
-      attachments,
-      message,
-      fn attachment, message ->
-        headers =
-          if attachment.content_id do
-            [content_id: attachment.content_id]
-          else
-            []
-          end
-
-        opts = [headers: headers]
-
-        Mail.put_attachment(message, {attachment.filename, attachment.data}, opts)
-      end
-    )
-  end
 end

@@ -313,8 +313,8 @@ defmodule Bamboo.SesAdapterTest do
 
       email = EmailParser.parse(raw_content)
 
-      assert header = EmailParser.header(email, "x-custom-header")
-      assert header.raw == "X-Custom-Header: header-value; another-value"
+      assert header_value = EmailParser.header(email, "X-Custom-Header")
+      assert header_value == "header-value; another-value"
 
       {:ok, %{status_code: 200, body: body}}
     end
