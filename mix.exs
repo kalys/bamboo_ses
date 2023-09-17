@@ -33,6 +33,7 @@ defmodule BambooSes.MixProject do
       {:gen_smtp, "~> 1.2.0"},
       {:jason, "~> 1.1"},
       {:mox, "~> 1.0", only: :test},
+      {:eiconv, ">= 0.0.0", only: :test, runtime: false},
       {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
