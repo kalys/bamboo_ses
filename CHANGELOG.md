@@ -1,3 +1,6 @@
+### 0.4.3
+`ex_aws` version set to `~> 2.4`
+
 ### 0.4.2
 `eiconv` is a test env dependency
 
