@@ -14,11 +14,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Setup elixir
-      uses: actions/setup-elixir@v1
+      id: setup-beam
+      uses: erlef/setup-beam@v1
       with:
         elixir-version: 1.14.x # Define the elixir version [required]
         otp-version: 25.x # Define the OTP version [required]
-        experimental-otp: true
     - name: Install Dependencies
       run: mix deps.get
     - name: Run Tests
@@ -32,9 +32,9 @@ jobs:
       id: plt_cache
       with:
         key: |
-          ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-plt
+          ${{ runner.os }}-${{ steps.setup-beam.outputs.elixir-version }}-${{ steps.setup-beam.outputs.otp-version }}-plt
         restore-keys: |
-          ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-plt
+          ${{ runner.os }}-${{ steps.setup-beam.outputs.elixir-version }}-${{ steps.setup-beam.outputs.otp-version }}-plt
         path: |
           priv/plts
 
