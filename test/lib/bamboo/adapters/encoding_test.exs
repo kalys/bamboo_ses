@@ -25,8 +25,12 @@ defmodule BambooSes.EncodingTest do
   end
 
   test "encodes special symbols" do
-    assert Encoding.prepare_address({"Chuck (?) Eager", "chuck@example.com"}) ==
-             ~s("=?utf-8?B?#{Base.encode64("Chuck (?) Eager")}?=" <chuck@example.com>)
+    for sym <- ["\"", "?", "\\"],
+        do:
+          assert(
+            Encoding.prepare_address({"Chuck (#{sym}) Eager", "chuck@example.com"}) ==
+              ~s("=?utf-8?B?#{Base.encode64("Chuck (#{sym}) Eager")}?=" <chuck@example.com>)
+          )
   end
 
   test "encodes emojis" do
