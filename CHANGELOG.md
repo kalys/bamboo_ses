@@ -1,3 +1,6 @@
+### 0.4.4
+Minor improvements
+
 ### 0.4.3
 `ex_aws` version set to `~> 2.4`
 
