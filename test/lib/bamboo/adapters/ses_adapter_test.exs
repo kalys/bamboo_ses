@@ -326,6 +326,34 @@ defmodule Bamboo.SesAdapterTest do
     |> SesAdapter.deliver(%{})
   end
 
+  test "does not crash with special characters in From and sending raw content" do
+    expected_request_fn = fn _, _, body, _, _ ->
+      {:ok, message} = Jason.decode(body)
+
+      %{
+        "Content" => %{
+          "Raw" => %{
+            "Data" => raw_content
+          }
+        }
+      } = message
+
+      email = EmailParser.parse(raw_content)
+
+      assert header_value = EmailParser.header(email, "From")
+      assert header_value == "\"John [Schmidt]\" <from@example.com>"
+
+      {:ok, %{status_code: 200, body: body}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    TestHelpers.new_email()
+    |> Email.put_header("X-Custom-Header", "header-value")
+    |> Email.from({"John [Schmidt]", "from@example.com"})
+    |> SesAdapter.deliver(%{})
+  end
+
   test "uses default aws region" do
     expected_request_fn = fn _,
                              "https://email.us-east-1.amazonaws.com/v2/email/outbound-emails",
