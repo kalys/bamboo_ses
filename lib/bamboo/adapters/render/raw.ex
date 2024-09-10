@@ -163,14 +163,12 @@ defmodule BambooSes.Render.Raw do
   defp headers_for(email) do
     headers =
       [
-        {"From", mailbox(email.from)},
+        {"From", BambooSes.Encoding.prepare_address(email.from)},
         {"Subject", email.subject}
       ] ++ Map.to_list(email.headers)
 
     Enum.filter(headers, fn i -> elem(i, 1) != "" end)
   end
-
-  defp mailbox({name, address}), do: "#{name} <#{address}>"
 
   defp compile_parts(email) do
     [
