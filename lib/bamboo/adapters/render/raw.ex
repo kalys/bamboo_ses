@@ -6,6 +6,9 @@ defmodule BambooSes.Render.Raw do
   @doc """
   Returns a tuple with all data needed for the underlying adapter to send.
   """
+
+  alias BambooSes.Encoding
+
   def render(email, extra_headers \\ []) do
     email
     # Returns a list of tuples
@@ -163,12 +166,18 @@ defmodule BambooSes.Render.Raw do
   defp headers_for(email) do
     headers =
       [
-        {"From", BambooSes.Encoding.prepare_address(email.from)},
+        {"From", Encoding.prepare_address(email.from)},
         {"Subject", email.subject}
-      ] ++ Map.to_list(email.headers)
+      ] ++ Enum.map(email.headers, &preprocess_header/1)
 
     Enum.filter(headers, fn i -> elem(i, 1) != "" end)
   end
+
+  defp preprocess_header({"Reply-To" = key, {_name, _address} = value}) do
+    {key, Encoding.prepare_address(value)}
+  end
+
+  defp preprocess_header({key, value}), do: {key, value}
 
   defp compile_parts(email) do
     [
