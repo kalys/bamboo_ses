@@ -10,79 +10,181 @@ defmodule BambooSes.Render.Raw do
   alias BambooSes.Encoding
 
   def render(email, extra_headers \\ []) do
-    email
-    # Returns a list of tuples
-    |> compile_parts()
-    # Nests the tuples and attaches necessary metadata
-    |> nest_parts(email, extra_headers)
+    has_text = String.length(email.text_body) > 0
+    has_html = String.length(email.html_body) > 0
+    has_attachments = length(filter_regular_attachments(email)) > 0
+    has_inline_attachments = length(filter_inline_attachments(email)) > 0
+
+    headers = headers_for(email) ++ extra_headers
+
+    build_parts(
+      has_text,
+      has_html,
+      has_attachments,
+      has_inline_attachments,
+      email,
+      headers
+    )
     |> :mimemail.encode()
   end
 
-  defp nest_parts(parts, email, extra_headers) do
-    {top_mime_type, top_mime_sub_type, _, _, top_content_part} = nested_content_part_tuples(parts)
-
+  defp build_parts(false, false, _, _, email, headers) do
     {
-      top_mime_type,
-      top_mime_sub_type,
-      headers_for(email) ++ extra_headers,
+      "multipart",
+      "mixed",
+      headers,
       %{},
-      top_content_part
+      prepare_attachments(email.attachments)
     }
   end
 
-  defp nested_content_part_tuples(parts) do
-    plain_part_tuple = body_part_tuple(parts, :plain)
-    html_part_tuple = body_part_tuple(parts, :html)
-    # attachment_part_tuples(parts)
-    inline_attachment_part_tuples = []
-    attached_attachment_part_tuples = attachment_part_tuples(parts)
-
-    related_or_html_part_tuple =
-      if Enum.empty?(inline_attachment_part_tuples) do
-        html_part_tuple
-      else
-        if is_nil(html_part_tuple),
-          do: nil,
-          else:
-            {"multipart", "related", [], %{}, [html_part_tuple | inline_attachment_part_tuples]}
-      end
-
-    alternative_or_plain_tuple =
-      if is_nil(related_or_html_part_tuple) do
-        plain_part_tuple
-      else
-        {"multipart", "alternative", [], %{}, [plain_part_tuple, related_or_html_part_tuple]}
-      end
-
-    mixed_or_alternative_tuple =
-      if Enum.empty?(attached_attachment_part_tuples) do
-        alternative_or_plain_tuple
-      else
-        if is_nil(alternative_or_plain_tuple),
-          do: nil,
-          else:
-            {"multipart", "mixed", [], %{},
-             [alternative_or_plain_tuple | attached_attachment_part_tuples]}
-      end
-
-    mixed_or_alternative_tuple
+  defp build_parts(false, true, false, false, email, headers) do
+    {
+      "text",
+      "html",
+      headers,
+      parameters_for(nil),
+      email.html_body
+    }
   end
 
-  @spec body_part_tuple([tuple()], atom()) :: nil | tuple()
-  defp body_part_tuple(parts, type) do
-    part = Enum.find(parts, &(elem(&1, 0) == type))
+  defp build_parts(false, true, false, true, email, headers) do
+    {
+      "multipart",
+      "related",
+      headers,
+      %{},
+      [
+        # generates html
+        build_parts(false, true, false, false, email, [])
+      ] ++ prepare_attachments(filter_inline_attachments(email))
+    }
+  end
 
-    if is_nil(part) do
-      nil
-    else
-      {
-        mime_type_for(part),
-        mime_subtype_for(part),
-        headers_for(part),
-        parameters_for(part),
-        elem(part, 1)
-      }
-    end
+  defp build_parts(false, true, true, false, email, headers) do
+    {
+      "multipart",
+      "mixed",
+      headers,
+      %{},
+      [
+        # generates html
+        build_parts(false, true, false, false, email, [])
+      ] ++ prepare_attachments(email.attachments)
+    }
+  end
+
+  defp build_parts(false, true, true, true, email, headers) do
+    {
+      "multipart",
+      "mixed",
+      headers,
+      %{},
+      [
+        # generates html
+        build_parts(false, true, false, true, email, [])
+      ] ++ prepare_attachments(filter_regular_attachments(email))
+    }
+  end
+
+  defp build_parts(true, false, false, false, email, headers) do
+    {
+      "text",
+      "plain",
+      headers,
+      parameters_for(nil),
+      email.text_body
+    }
+  end
+
+  defp build_parts(true, false, _, _, email, headers) do
+    {
+      "multipart",
+      "mixed",
+      headers,
+      %{},
+      [
+        # generates text
+        build_parts(true, false, false, false, email, [])
+      ] ++ prepare_attachments(email.attachments)
+    }
+  end
+
+  defp build_parts(true, true, false, false, email, headers) do
+    {
+      "multipart",
+      "alternative",
+      headers,
+      %{},
+      [
+        # generates text
+        build_parts(true, false, false, false, email, []),
+        # generates html
+        build_parts(false, true, false, false, email, [])
+      ]
+    }
+  end
+
+  defp build_parts(true, true, false, true, email, headers) do
+    {
+      "multipart",
+      "related",
+      headers,
+      %{},
+      [
+        # generates alternative
+        build_parts(true, true, false, false, email, [])
+      ] ++ prepare_attachments(filter_inline_attachments(email))
+    }
+  end
+
+  defp build_parts(true, true, true, false, email, headers) do
+    {
+      "multipart",
+      "mixed",
+      headers,
+      %{},
+      [
+        # generates alternative
+        build_parts(true, true, false, false, email, [])
+      ] ++ prepare_attachments(email.attachments)
+    }
+  end
+
+  defp build_parts(true, true, true, true, email, headers) do
+    {
+      "multipart",
+      "mixed",
+      headers,
+      %{},
+      [
+        # generates related with alternative
+        build_parts(true, true, false, true, email, [])
+      ] ++ prepare_attachments(filter_regular_attachments(email))
+    }
+  end
+
+  defp prepare_attachments(attachments) do
+    attachments
+    |> Enum.map(fn attachment -> {:attachment, attachment.data, attachment} end)
+    |> attachment_part_tuples()
+  end
+
+  def filter_inline_attachments(email) do
+    Enum.filter(email.attachments, fn
+      attachment ->
+        !is_nil(attachment) &&
+          !is_nil(attachment.content_id) &&
+          String.length(attachment.content_id) > 0
+    end)
+  end
+
+  def filter_regular_attachments(email) do
+    Enum.filter(email.attachments, fn
+      attachment ->
+        !is_nil(attachment) &&
+          (is_nil(attachment.content_id) || String.length(attachment.content_id) == 0)
+    end)
   end
 
   @spec attachment_part_tuples([tuple()]) :: list(tuple())
@@ -178,21 +280,4 @@ defmodule BambooSes.Render.Raw do
   end
 
   defp preprocess_header({key, value}), do: {key, value}
-
-  defp compile_parts(email) do
-    [
-      {:plain, email.text_body},
-      {:html, email.html_body},
-      Enum.map(email.attachments, fn attachment ->
-        {:attachment, attachment.data, attachment}
-      end)
-    ]
-    |> List.flatten()
-    |> Enum.filter(&not_empty_tuple_value(&1))
-  end
-
-  defp not_empty_tuple_value(tuple) when is_tuple(tuple) do
-    value = elem(tuple, 1)
-    value != nil && value != [] && value != ""
-  end
 end
