@@ -10,8 +10,8 @@ defmodule BambooSes.Render.Raw do
   alias BambooSes.Encoding
 
   def render(email, extra_headers \\ []) do
-    has_text = String.length(email.text_body) > 0
-    has_html = String.length(email.html_body) > 0
+    has_text = !is_nil(email.text_body) && String.length(email.text_body) > 0
+    has_html = !is_nil(email.html_body) && String.length(email.html_body) > 0
     has_attachments = length(filter_regular_attachments(email)) > 0
     has_inline_attachments = length(filter_inline_attachments(email)) > 0
 
