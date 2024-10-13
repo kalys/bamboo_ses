@@ -2,7 +2,7 @@ defmodule BambooSes.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/kalys/bamboo_ses"
-  @version "0.4.4"
+  @version "0.4.5"
 
   def project do
     [

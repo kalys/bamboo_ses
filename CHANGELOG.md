@@ -1,3 +1,8 @@
+### 0.4.5
+* Message is sent using the Simple content type if message has just headers.
+* Raw content generation is fixed and refactored
+* Header encoding improvements
+
 ### 0.4.4
 Minor improvements
 
