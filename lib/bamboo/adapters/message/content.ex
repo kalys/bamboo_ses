@@ -4,6 +4,8 @@ defmodule BambooSes.Message.Content do
   Depending on email it can generate simple, raw or template content.
   """
 
+  alias BambooSes.Encoding
+
   @type t :: %__MODULE__{
           Template:
             %{
@@ -78,8 +80,8 @@ defmodule BambooSes.Message.Content do
        when is_map(template_params),
        do: %__MODULE__{Template: template_params}
 
-  defp build_content(_email, _template_params, subject, text, html, [], []),
-    do: build_simple_content(subject, text, html)
+  defp build_content(_email, _template_params, subject, text, html, headers, []),
+    do: build_simple_content(subject, text, html, headers)
 
   defp build_content(email, _template_params, _subject, _text, _html, _headers, _attachments) do
     raw_data =
@@ -94,16 +96,24 @@ defmodule BambooSes.Message.Content do
     }
   end
 
-  defp build_simple_content(subject, text, html) do
+  defp build_simple_content(subject, text, html, headers) do
     %__MODULE__{
       Simple: %{
         Subject: %{
           Charset: "UTF-8",
           Data: subject
         },
-        Body: build_simple_body(text, html)
+        Body: build_simple_body(text, html),
+        Headers: build_headers(headers)
       }
     }
+  end
+
+  defp build_headers(headers) do
+    Enum.map(
+      headers,
+      fn {name, value} -> %{"Name" => name, "Value" => Encoding.maybe_rfc1342_encode(value)} end
+    )
   end
 
   defp build_simple_body(text, html) do

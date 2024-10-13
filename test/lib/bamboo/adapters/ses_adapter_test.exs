@@ -323,6 +323,7 @@ defmodule Bamboo.SesAdapterTest do
 
     TestHelpers.new_email()
     |> Email.put_header("X-Custom-Header", "header-value; another-value")
+    |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
     |> SesAdapter.deliver(%{})
   end
 
@@ -351,6 +352,7 @@ defmodule Bamboo.SesAdapterTest do
     TestHelpers.new_email()
     |> Email.put_header("X-Custom-Header", "header-value")
     |> Email.from({"John [Schmidt]", "from@example.com"})
+    |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
     |> SesAdapter.deliver(%{})
   end
 
@@ -377,7 +379,7 @@ defmodule Bamboo.SesAdapterTest do
     expect(HttpMock, :request, expected_request_fn)
 
     TestHelpers.new_email()
-    |> Email.put_header("X-Custom-Header", "header-value")
+    |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
     |> Email.put_header("Reply-To", {"John Schmidt", "reply-to@example.com"})
     |> SesAdapter.deliver(%{})
   end

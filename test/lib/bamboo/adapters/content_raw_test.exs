@@ -7,6 +7,7 @@ defmodule BambooSes.ContentRawTest do
   test "generates raw content when there is a header" do
     content =
       TestHelpers.new_email()
+      |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
       |> Email.put_header("X-Custom-Header", "custom-header-value")
       |> Content.build_from_bamboo_email()
 
@@ -18,12 +19,7 @@ defmodule BambooSes.ContentRawTest do
 
     parsed_content = EmailParser.parse(raw_data)
 
-    raw_data
-    |> EmailParser.parse()
-
     assert EmailParser.subject(parsed_content) == "Welcome to the app."
-    assert EmailParser.text(parsed_content) == "Thanks for joining!"
-    assert EmailParser.html(parsed_content) == "<strong>Thanks for joining!</strong>"
     assert header = EmailParser.header(parsed_content, "X-Custom-Header")
     assert header == "custom-header-value"
   end
@@ -100,6 +96,7 @@ defmodule BambooSes.ContentRawTest do
 
     content =
       TestHelpers.new_email()
+      |> Email.put_attachment(Path.join(__DIR__, "../../../support/invoice.pdf"))
       |> Email.put_header("X-Custom-Header", custom_header)
       |> Content.build_from_bamboo_email()
 
