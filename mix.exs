@@ -30,7 +30,7 @@ defmodule BambooSes.MixProject do
     [
       {:ex_aws, "~> 2.4"},
       {:bamboo, "~> 2.0"},
-      {:gen_smtp, "~> 1.2.0"},
+      {:gen_smtp, "~> 1.2"},
       {:jason, "~> 1.1"},
       {:mox, "~> 1.0", only: :test},
       {:eiconv, ">= 0.0.0", only: :test, runtime: false},
