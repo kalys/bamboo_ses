@@ -72,7 +72,7 @@ defmodule BambooSes.Encoding do
       @rfc1342_maximum_encoded_word_length - String.length(encode_word(""))
 
     {encoded, rest} =
-      maximum_possible_text_length..1
+      Range.new(maximum_possible_text_length, 1, -1)
       |> Enum.reduce_while(nil, fn n, _ ->
         {word, rest} = String.split_at(string, n)
         encoded = encode_word(word)
