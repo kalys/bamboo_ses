@@ -90,7 +90,7 @@ defmodule BambooSes.ContentRawPartsTest do
   end
 
   @doc "f t f f"
-  test "generates text/html when only html is provided" do
+  test "generates simple content with text/html when only html is provided" do
     content =
       TestHelpers.new_email()
       |> Email.text_body("")
@@ -98,13 +98,16 @@ defmodule BambooSes.ContentRawPartsTest do
       |> Email.put_header("X-Custom-Header", "custom-value")
       |> Content.build_from_bamboo_email()
 
-    %Content{
-      Raw: %{
-        Data: raw_data
-      }
-    } = content
-
-    assert {"text", "html", _, _, "<b>Email body</b>"} = EmailParser.parse(raw_data)
+    assert content == %Content{
+             Simple: %{
+               Body: %{
+                 Html: %{Charset: "UTF-8", Data: "<b>Email body</b>"},
+                 Text: %{Charset: "UTF-8", Data: ""}
+               },
+               Subject: %{Charset: "UTF-8", Data: "Welcome to the app."},
+               Headers: [%{"Name" => "X-Custom-Header", "Value" => "custom-value"}]
+             }
+           }
   end
 
   @doc "f t f t"
@@ -175,7 +178,7 @@ defmodule BambooSes.ContentRawPartsTest do
   end
 
   @doc "t f f f"
-  test "generates text/plain when only text is provided" do
+  test "generates simple content with text/plain when only text is provided" do
     content =
       TestHelpers.new_email()
       |> Email.text_body("Email text body")
@@ -183,13 +186,16 @@ defmodule BambooSes.ContentRawPartsTest do
       |> Email.put_header("X-Custom-Header", "custom-value")
       |> Content.build_from_bamboo_email()
 
-    %Content{
-      Raw: %{
-        Data: raw_data
-      }
-    } = content
-
-    assert {"text", "plain", _, _, "Email text body"} = EmailParser.parse(raw_data)
+    assert content == %Content{
+             Simple: %{
+               Body: %{
+                 Html: %{Data: "", Charset: "UTF-8"},
+                 Text: %{Data: "Email text body", Charset: "UTF-8"}
+               },
+               Subject: %{Data: "Welcome to the app.", Charset: "UTF-8"},
+               Headers: [%{"Name" => "X-Custom-Header", "Value" => "custom-value"}]
+             }
+           }
   end
 
   @doc "t f f t"
@@ -267,15 +273,16 @@ defmodule BambooSes.ContentRawPartsTest do
       |> Email.put_header("X-Custom-Header", "custom-value")
       |> Content.build_from_bamboo_email()
 
-    %Content{
-      Raw: %{
-        Data: raw_data
-      }
-    } = content
-
-    assert {"multipart", "alternative", _, _, [text, html]} = EmailParser.parse(raw_data)
-    assert {"text", "plain", _, _, "Email text body"} = text
-    assert {"text", "html", _, _, "<b>Email html body</b>"} = html
+    assert content == %Content{
+             Simple: %{
+               Body: %{
+                 Html: %{Data: "<b>Email html body</b>", Charset: "UTF-8"},
+                 Text: %{Data: "Email text body", Charset: "UTF-8"}
+               },
+               Subject: %{Data: "Welcome to the app.", Charset: "UTF-8"},
+               Headers: [%{"Name" => "X-Custom-Header", "Value" => "custom-value"}]
+             }
+           }
   end
 
   @doc "t t f t"

@@ -27,14 +27,14 @@ defmodule BambooSes.Message.Destination do
   """
   @spec put_to(__MODULE__.t(), [Bamboo.Email.address()]) :: __MODULE__.t()
   def put_to(destination, recipients) when is_list(recipients),
-    do: %__MODULE__{
+    do: %{
       destination
       | ToAddresses: Enum.map(recipients, &Encoding.prepare_address(&1))
     }
 
   @spec put_to(__MODULE__.t(), Bamboo.Email.address()) :: __MODULE__.t()
   def put_to(destination, {_k, _v} = recipient),
-    do: %__MODULE__{destination | ToAddresses: [Encoding.prepare_address(recipient)]}
+    do: %{destination | ToAddresses: [Encoding.prepare_address(recipient)]}
 
   def put_to(destination, _recipients), do: destination
 
@@ -48,14 +48,14 @@ defmodule BambooSes.Message.Destination do
   """
   @spec put_cc(__MODULE__.t(), [Bamboo.Email.address()]) :: __MODULE__.t()
   def put_cc(destination, recipients) when is_list(recipients),
-    do: %__MODULE__{
+    do: %{
       destination
       | CcAddresses: Enum.map(recipients, &Encoding.prepare_address(&1))
     }
 
   @spec put_cc(__MODULE__.t(), Bamboo.Email.address()) :: __MODULE__.t()
   def put_cc(destination, {_k, _v} = recipient),
-    do: %__MODULE__{destination | CcAddresses: [Encoding.prepare_address(recipient)]}
+    do: %{destination | CcAddresses: [Encoding.prepare_address(recipient)]}
 
   def put_cc(destination, _recipients), do: destination
 
@@ -68,13 +68,13 @@ defmodule BambooSes.Message.Destination do
       put_bcc(destination, {"John Doe", "john.doe@example.com"})
   """
   def put_bcc(destination, recipients) when is_list(recipients),
-    do: %__MODULE__{
+    do: %{
       destination
       | BccAddresses: Enum.map(recipients, &Encoding.prepare_address(&1))
     }
 
   def put_bcc(destination, {_k, _v} = recipient),
-    do: %__MODULE__{destination | BccAddresses: [Encoding.prepare_address(recipient)]}
+    do: %{destination | BccAddresses: [Encoding.prepare_address(recipient)]}
 
   def put_bcc(destination, _recipients), do: destination
 end

@@ -35,7 +35,7 @@ defmodule BambooSes.Message do
   """
   @spec put_from(__MODULE__.t(), Bamboo.Email.address() | nil) :: __MODULE__.t()
   def put_from(message, from) do
-    %__MODULE__{message | FromEmailAddress: Encoding.prepare_address(from)}
+    %{message | FromEmailAddress: Encoding.prepare_address(from)}
   end
 
   @doc """
@@ -45,7 +45,7 @@ defmodule BambooSes.Message do
   def put_from_arn(message, nil), do: message
 
   def put_from_arn(message, value) when is_binary(value),
-    do: %__MODULE__{message | FromEmailAddressIdentityArn: value}
+    do: %{message | FromEmailAddressIdentityArn: value}
 
   @doc """
   Adds feedback forwarding address to message struct
@@ -54,14 +54,14 @@ defmodule BambooSes.Message do
   def put_feedback_forwarding_address(message, nil), do: message
 
   def put_feedback_forwarding_address(message, address) when is_binary(address),
-    do: %__MODULE__{message | FeedbackForwardingEmailAddress: address}
+    do: %{message | FeedbackForwardingEmailAddress: address}
 
   @doc """
   Adds feedback forwarding address arn to message struct
   """
   @spec put_feedback_forwarding_address_arn(__MODULE__.t(), String.t() | nil) :: __MODULE__.t()
   def put_feedback_forwarding_address_arn(message, arn) when is_binary(arn),
-    do: %__MODULE__{message | FeedbackForwardingEmailAddressIdentityArn: arn}
+    do: %{message | FeedbackForwardingEmailAddressIdentityArn: arn}
 
   def put_feedback_forwarding_address_arn(message, nil), do: message
 
@@ -73,7 +73,7 @@ defmodule BambooSes.Message do
   def put_list_management_options(message, nil, nil), do: message
 
   def put_list_management_options(message, contact_list_name, topic_name),
-    do: %__MODULE__{
+    do: %{
       message
       | ListManagementOptions: %{
           "ContactListName" => contact_list_name,
@@ -86,7 +86,7 @@ defmodule BambooSes.Message do
   """
   @spec put_reply_to(__MODULE__.t(), Bamboo.Email.address()) :: __MODULE__.t()
   def put_reply_to(message, reply_to),
-    do: %__MODULE__{
+    do: %{
       message
       | ReplyToAddresses: [Encoding.prepare_address(reply_to) | message."ReplyToAddresses"]
     }
@@ -107,7 +107,7 @@ defmodule BambooSes.Message do
       |> Destination.put_cc(cc)
       |> Destination.put_bcc(bcc)
 
-    %__MODULE__{message | Destination: destination}
+    %{message | Destination: destination}
   end
 
   @doc """
@@ -115,7 +115,7 @@ defmodule BambooSes.Message do
   """
   @spec put_configuration_set_name(__MODULE__.t(), String.t() | nil) :: __MODULE__.t()
   def put_configuration_set_name(message, value) when is_binary(value),
-    do: %__MODULE__{message | ConfigurationSetName: value}
+    do: %{message | ConfigurationSetName: value}
 
   def put_configuration_set_name(message, _value), do: message
 
@@ -126,14 +126,14 @@ defmodule BambooSes.Message do
   def put_email_tags(message, nil), do: message
 
   def put_email_tags(message, tags) when is_list(tags),
-    do: %__MODULE__{message | EmailTags: tags}
+    do: %{message | EmailTags: tags}
 
   @doc """
   Adds content struct to message struct
   """
   @spec put_content(__MODULE__.t(), Bamboo.Email.t()) :: __MODULE__.t()
   def put_content(message, email),
-    do: %__MODULE__{message | Content: Content.build_from_bamboo_email(email)}
+    do: %{message | Content: Content.build_from_bamboo_email(email)}
 end
 
 defimpl Jason.Encoder, for: [BambooSes.Message, BambooSes.Message.Content] do
