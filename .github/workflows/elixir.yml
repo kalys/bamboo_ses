@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v2
@@ -17,8 +17,8 @@ jobs:
       id: setup-beam
       uses: erlef/setup-beam@v1
       with:
-        elixir-version: 1.14.x # Define the elixir version [required]
-        otp-version: 25.x # Define the OTP version [required]
+        elixir-version: 1.18.x # Define the elixir version [required]
+        otp-version: 28.x # Define the OTP version [required]
     - name: Install Dependencies
       run: mix deps.get
     - name: Run Tests
@@ -28,7 +28,7 @@ jobs:
     - name: Check Credo
       run: mix credo
     - name: Restore PLT cache
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       id: plt_cache
       with:
         key: |
