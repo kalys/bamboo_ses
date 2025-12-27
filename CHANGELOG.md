@@ -1,3 +1,6 @@
+### 0.4.6
+* Lessen `gen_smtp` version dependency from "~> 1.2.0" to "~> 1.2"
+
 ### 0.4.5
 * Message is sent using the Simple content type if message has just headers.
 * Raw content generation is fixed and refactored
