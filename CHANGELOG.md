@@ -1,3 +1,6 @@
+### 0.4.7
+* Add `set_tenant_name` and `set_endpoint_id` setters 
+
 ### 0.4.6
 * Lessen `gen_smtp` version dependency from "~> 1.2.0" to "~> 1.2"
 
