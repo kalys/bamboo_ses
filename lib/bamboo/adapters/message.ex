@@ -16,7 +16,9 @@ defmodule BambooSes.Message do
           FeedbackForwardingEmailAddress: String.t() | nil,
           FeedbackForwardingEmailAddressIdentityArn: String.t() | nil,
           ListManagementOptions: map() | nil,
-          EmailTags: nonempty_list(map()) | nil
+          EmailTags: nonempty_list(map()) | nil,
+          EndpointId: String.t() | nil,
+          TenantName: String.t() | nil
         }
 
   defstruct FromEmailAddress: nil,
@@ -28,7 +30,9 @@ defmodule BambooSes.Message do
             FeedbackForwardingEmailAddress: nil,
             FeedbackForwardingEmailAddressIdentityArn: nil,
             ListManagementOptions: nil,
-            EmailTags: nil
+            EmailTags: nil,
+            EndpointId: nil,
+            TenantName: nil
 
   @doc """
   Adds from address to message struct
@@ -118,6 +122,24 @@ defmodule BambooSes.Message do
     do: %{message | ConfigurationSetName: value}
 
   def put_configuration_set_name(message, _value), do: message
+
+  @doc """
+  Adds endpoint ID to message struct.
+  """
+  @spec put_endpoint_id(__MODULE__.t(), String.t() | nil) :: __MODULE__.t()
+  def put_endpoint_id(message, value) when is_binary(value),
+    do: %{message | EndpointId: value}
+
+  def put_endpoint_id(message, _value), do: message
+
+  @doc """
+  Adds tenant name to message struct.
+  """
+  @spec put_tenant_name(__MODULE__.t(), String.t() | nil) :: __MODULE__.t()
+  def put_tenant_name(message, value) when is_binary(value),
+    do: %{message | TenantName: value}
+
+  def put_tenant_name(message, _value), do: message
 
   @doc """
   Adds email tags to message struct

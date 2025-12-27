@@ -102,6 +102,48 @@ defmodule Bamboo.SesAdapterTest do
     |> SesAdapter.deliver(%{})
   end
 
+  test "sets endpoint id" do
+    expected_endpoint_id = "test-endpoint-id"
+
+    expected_request_fn = fn _, _, body, _, _ ->
+      {:ok, message} = Jason.decode(body)
+
+      %{
+        "EndpointId" => endpoint_id
+      } = message
+
+      assert endpoint_id == expected_endpoint_id
+      {:ok, %{status_code: 200, body: body}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    TestHelpers.new_email()
+    |> SesAdapter.set_endpoint_id(expected_endpoint_id)
+    |> SesAdapter.deliver(%{})
+  end
+
+  test "sets tenant name" do
+    expected_tenant_name = "test-tenant-name"
+
+    expected_request_fn = fn _, _, body, _, _ ->
+      {:ok, message} = Jason.decode(body)
+
+      %{
+        "TenantName" => tenant_name
+      } = message
+
+      assert tenant_name == expected_tenant_name
+      {:ok, %{status_code: 200, body: body}}
+    end
+
+    expect(HttpMock, :request, expected_request_fn)
+
+    TestHelpers.new_email()
+    |> SesAdapter.set_tenant_name(expected_tenant_name)
+    |> SesAdapter.deliver(%{})
+  end
+
   test "sets a from arn" do
     expected_from_arn = "arn:aws:ses:us-east-1:123456789012:identity/example.com"
 

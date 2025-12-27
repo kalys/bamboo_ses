@@ -38,6 +38,8 @@ defmodule Bamboo.SesAdapter do
     |> Message.put_from_arn(from_arn)
     |> Message.put_destination(email.to, email.cc, email.bcc)
     |> Message.put_configuration_set_name(configuration_set_name)
+    |> Message.put_endpoint_id(email.private[:endpoint_id])
+    |> Message.put_tenant_name(email.private[:tenant_name])
     |> Message.put_feedback_forwarding_address(email.private[:feedback_forwarding_address])
     |> Message.put_feedback_forwarding_address_arn(
       email.private[:feedback_forwarding_address_arn]
@@ -66,6 +68,26 @@ defmodule Bamboo.SesAdapter do
   """
   def set_configuration_set(mail, configuration_set_name),
     do: Bamboo.Email.put_private(mail, :configuration_set_name, configuration_set_name)
+
+  @doc """
+  Set EndpointId
+
+  ## Example
+      email
+      |> Bamboo.SesAdapter.set_endpoint_id("my-endpoint-id")
+  """
+  def set_endpoint_id(mail, endpoint_id),
+    do: Bamboo.Email.put_private(mail, :endpoint_id, endpoint_id)
+
+  @doc """
+  Set TenantName
+
+  ## Example
+      email
+      |> Bamboo.SesAdapter.set_tenant_name("my-tenant-name")
+  """
+  def set_tenant_name(mail, tenant_name),
+    do: Bamboo.Email.put_private(mail, :tenant_name, tenant_name)
 
   @doc """
   Set the SES FromEmailAddressIdentityArn.
