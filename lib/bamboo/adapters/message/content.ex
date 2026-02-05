@@ -1,7 +1,7 @@
 defmodule BambooSes.Message.Content do
   @moduledoc """
   Contains functions for composing email content.
-  Depending on email it can generate simple, raw or template content.
+  Depending on email it can generate simple or template content.
   """
 
   alias BambooSes.Encoding
@@ -29,27 +29,22 @@ defmodule BambooSes.Message.Content do
                   Charset: String.t(),
                   Data: String.t() | nil
                 }
-              }
-            }
-            | nil,
-          Raw:
-            %{
-              Data: String.t()
+              },
+              Attachments: [map()] | nil,
+              Headers: [map()] | nil
             }
             | nil
         }
 
   defstruct Simple: nil,
-            Template: nil,
-            Raw: nil
+            Template: nil
 
   @doc """
-  Generates simple, raw or template content struct
+  Generates simple or template content struct
 
   ## Returns
   If template params are given then a template content struct will be returned.
-  If email has no attachments and headers then a simple content struct will be returned.
-  If there is an attachment or a header (apart from Reply-To) then raw content struct will be returned.
+  Otherwise a simple content struct will be returned, with attachments if present.
   """
   @spec build_from_bamboo_email(Bamboo.Email.t()) :: __MODULE__.t()
   def build_from_bamboo_email(email) do
@@ -66,7 +61,6 @@ defmodule BambooSes.Message.Content do
       |> prepare_headers
 
     build_content(
-      email,
       template_params,
       email.subject,
       email.text_body,
@@ -76,29 +70,16 @@ defmodule BambooSes.Message.Content do
     )
   end
 
-  defp build_content(_email, template_params, _subject, _text, _html, _headers, _attachments)
+  defp build_content(template_params, _subject, _text, _html, _headers, _attachments)
        when is_map(template_params),
        do: %__MODULE__{Template: template_params}
 
-  defp build_content(_email, _template_params, subject, text, html, headers, []),
-    do: build_simple_content(subject, text, html, headers)
+  defp build_content(_template_params, subject, text, html, headers, attachments),
+    do: build_simple_content(subject, text, html, headers, attachments)
 
-  defp build_content(email, _template_params, _subject, _text, _html, _headers, _attachments) do
-    raw_data =
-      email
-      |> BambooSes.Render.Raw.render()
-      |> Base.encode64()
-
-    %__MODULE__{
-      Raw: %{
-        Data: raw_data
-      }
-    }
-  end
-
-  defp build_simple_content(subject, text, html, headers) do
-    %__MODULE__{
-      Simple: %{
+  defp build_simple_content(subject, text, html, headers, attachments) do
+    simple =
+      %{
         Subject: %{
           Charset: "UTF-8",
           Data: subject
@@ -106,7 +87,9 @@ defmodule BambooSes.Message.Content do
         Body: build_simple_body(text, html),
         Headers: build_headers(headers)
       }
-    }
+      |> put_attachments(attachments)
+
+    %__MODULE__{Simple: simple}
   end
 
   defp build_headers(headers) do
@@ -133,6 +116,29 @@ defmodule BambooSes.Message.Content do
   end
 
   defp put_html(content, _value), do: content
+
+  defp put_attachments(simple, []), do: simple
+
+  defp put_attachments(simple, attachments) do
+    Map.put(simple, :Attachments, Enum.map(attachments, &build_attachment/1))
+  end
+
+  defp build_attachment(attachment) do
+    base = %{
+      FileName: attachment.filename,
+      RawContent: Base.encode64(attachment.data),
+      ContentType: attachment.content_type,
+      ContentTransferEncoding: "BASE64"
+    }
+
+    if attachment.content_id && attachment.content_id != "" do
+      base
+      |> Map.put(:ContentDisposition, "INLINE")
+      |> Map.put(:ContentId, attachment.content_id)
+    else
+      Map.put(base, :ContentDisposition, "ATTACHMENT")
+    end
+  end
 
   defp fetch_template_params(name, nil, nil) when is_binary(name),
     do: %{TemplateName: name}

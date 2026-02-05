@@ -2,9 +2,8 @@ defmodule Bamboo.SesAdapterTest do
   use ExUnit.Case
   import Mox
   alias Bamboo.{Email, Mailer, SesAdapter}
-  alias BambooSes.{EmailParser, TestHelpers}
+  alias BambooSes.TestHelpers
   alias ExAws.Request.HttpMock
-  require IEx
 
   setup do
     System.put_env("AWS_ACCESS_KEY_ID", "AKIAIOSFODNN7EXAMPLE")
@@ -341,22 +340,24 @@ defmodule Bamboo.SesAdapterTest do
     |> SesAdapter.deliver(%{})
   end
 
-  test "puts raw content" do
+  test "puts simple content with header and attachment" do
     expected_request_fn = fn _, _, body, _, _ ->
       {:ok, message} = Jason.decode(body)
 
       %{
         "Content" => %{
-          "Raw" => %{
-            "Data" => raw_content
+          "Simple" => %{
+            "Headers" => headers,
+            "Attachments" => [attachment]
           }
         }
       } = message
 
-      email = EmailParser.parse(raw_content)
+      header = Enum.find(headers, fn h -> h["Name"] == "X-Custom-Header" end)
+      assert header["Value"] == "header-value; another-value"
 
-      assert header_value = EmailParser.header(email, "X-Custom-Header")
-      assert header_value == "header-value; another-value"
+      assert attachment["FileName"] == "invoice.pdf"
+      assert attachment["ContentDisposition"] == "ATTACHMENT"
 
       {:ok, %{status_code: 200, body: body}}
     end
@@ -369,22 +370,20 @@ defmodule Bamboo.SesAdapterTest do
     |> SesAdapter.deliver(%{})
   end
 
-  test "does not crash with special characters in From and sending raw content" do
+  test "delivers with special characters in From and attachment" do
     expected_request_fn = fn _, _, body, _, _ ->
       {:ok, message} = Jason.decode(body)
 
       %{
+        "FromEmailAddress" => from,
         "Content" => %{
-          "Raw" => %{
-            "Data" => raw_content
+          "Simple" => %{
+            "Attachments" => [_attachment]
           }
         }
       } = message
 
-      email = EmailParser.parse(raw_content)
-
-      assert header_value = EmailParser.header(email, "From")
-      assert header_value == "\"John [Schmidt]\" <from@example.com>"
+      assert from == "\"John [Schmidt]\" <from@example.com>"
 
       {:ok, %{status_code: 200, body: body}}
     end
@@ -398,22 +397,20 @@ defmodule Bamboo.SesAdapterTest do
     |> SesAdapter.deliver(%{})
   end
 
-  test "does not crash with Reply-To tuple and sending raw content" do
+  test "delivers with Reply-To tuple and attachment" do
     expected_request_fn = fn _, _, body, _, _ ->
       {:ok, message} = Jason.decode(body)
 
       %{
+        "ReplyToAddresses" => [reply_to],
         "Content" => %{
-          "Raw" => %{
-            "Data" => raw_content
+          "Simple" => %{
+            "Attachments" => [_attachment]
           }
         }
       } = message
 
-      email = EmailParser.parse(raw_content)
-
-      assert header_value = EmailParser.header(email, "Reply-To")
-      assert header_value == "John Schmidt <reply-to@example.com>"
+      assert reply_to == "\"John Schmidt\" <reply-to@example.com>"
 
       {:ok, %{status_code: 200, body: body}}
     end
