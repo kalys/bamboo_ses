@@ -1,3 +1,6 @@
+### 0.5.0
+* Simple content type is used for sending attachments
+
 ### 0.4.7
 * Add `set_tenant_name` and `set_endpoint_id` setters 
 
